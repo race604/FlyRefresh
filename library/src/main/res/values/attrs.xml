@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <declare-styleable name="FlyRefreshView">
+    <declare-styleable name="FlyRefreshLayout">
         <attr name="frv_header_height" format="dimension" />
         <attr name="frv_header_expand_height" format="dimension" />
         <attr name="frv_header_shrink_height" format="dimension" />
+        <attr name="frv_header" format="reference" />
+        <attr name="frv_content" format="reference" />
     </declare-styleable>
 </resources>
