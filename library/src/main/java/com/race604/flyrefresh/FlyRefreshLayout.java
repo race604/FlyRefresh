@@ -8,6 +8,7 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.view.ViewGroup;
 import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Scroller;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.race604.utils.UIUtils;
 
 /**
@@ -43,6 +45,8 @@ public class FlyRefreshLayout extends ViewGroup {
     private boolean mPreventForHorizontal = false;
     private boolean mDisableWhenHorizontalMove = false;
 
+    private Drawable mActionDrawable;
+    private FloatingActionButton mActionView;
     private View mHeaderView;
     protected View mContent;
     protected HeaderController mHeaderController;
@@ -87,6 +91,8 @@ public class FlyRefreshLayout extends ViewGroup {
             mHeaderId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_header, mHeaderId);
             mContentId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_content, mContentId);
 
+            mActionDrawable = arr.getDrawable(R.styleable.FlyRefreshLayout_frv_action);
+
             arr.recycle();
         }
 
@@ -96,7 +102,6 @@ public class FlyRefreshLayout extends ViewGroup {
         mScrollHandler = new DefalutScrollHandler();
 
         mScrollChecker = new ScrollChecker();
-        mVelocityTracker = VelocityTracker.obtain();
         mMaxVelocity = conf.getScaledMaximumFlingVelocity();
     }
 
@@ -149,6 +154,23 @@ public class FlyRefreshLayout extends ViewGroup {
             mContent = getChildAt(0);
         }
 
+        if (mActionDrawable != null) {
+            final int bgColor = UIUtils.getThemeColorFromAttrOrRes(getContext(), R.attr.colorAccent, R.color.accent);
+            final int pressedColor = UIUtils.darkerColor(bgColor, 0.8f);
+            mActionView = new FloatingActionButton(getContext());
+            mActionView.setIconDrawable(mActionDrawable);
+            mActionView.setColorNormal(bgColor);
+            mActionView.setColorPressed(pressedColor);
+
+            addView(mActionView);
+            mActionView.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "Clicked");
+                }
+            });
+        }
+
         super.onFinishInflate();
     }
 
@@ -162,6 +184,10 @@ public class FlyRefreshLayout extends ViewGroup {
 
         if (mContent != null) {
             measureChildWithMargins(mContent, widthMeasureSpec, 0, heightMeasureSpec, mHeaderShrinkHeight);
+        }
+
+        if (mActionView != null) {
+            measureChild(mActionView, widthMeasureSpec, heightMeasureSpec);
         }
     }
 
@@ -191,6 +217,13 @@ public class FlyRefreshLayout extends ViewGroup {
             final int right = left + mContent.getMeasuredWidth();
             final int bottom = top + mContent.getMeasuredHeight();
             mContent.layout(left, top, right, bottom);
+        }
+
+        if (mActionView != null) {
+            final int left = UIUtils.dpToPx(16);
+            final int right = left + mActionView.getMeasuredWidth();
+            final int halfHeight = mActionView.getMeasuredHeight() / 2;
+            mActionView.layout(left, offsetY - halfHeight, right, offsetY + halfHeight);
         }
     }
 
@@ -225,7 +258,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
     private float getInitVelocity() {
         if (mVelocityTracker != null) {
-            mVelocityTracker.computeCurrentVelocity(1000);
+            mVelocityTracker.computeCurrentVelocity(1000/*, mMaxVelocity*/);
             return mVelocityTracker.getYVelocity();
         }
         return 0;
@@ -247,8 +280,8 @@ public class FlyRefreshLayout extends ViewGroup {
 
                 if (mHeaderController.isInTouch()) {
                     mHeaderController.onTouchRelease();
-                    onRelease((int)initVelocity);
                     if (mHeaderController.hasMoved()) {
+                        onRelease((int)initVelocity);
                         sendCancelEvent();
                         return true;
                     }
@@ -264,12 +297,7 @@ public class FlyRefreshLayout extends ViewGroup {
                 mScrollChecker.abortIfWorking();
 
                 mPreventForHorizontal = false;
-                if (mHeaderController.isInTouch()) {
-                    // do nothing, intercept child event
-                } else {
-                    super.dispatchTouchEvent(ev);
-                }
-                return true;
+                super.dispatchTouchEvent(ev);
 
             case MotionEvent.ACTION_MOVE:
                 mLastMoveEvent = ev;
@@ -344,7 +372,13 @@ public class FlyRefreshLayout extends ViewGroup {
     }
 
     private void movePos(float delta) {
-        mContent.offsetTopAndBottom((int)delta);
+        if (mContent != null) {
+            mContent.offsetTopAndBottom((int) delta);
+        }
+
+        if (mActionView != null) {
+            mActionView.offsetTopAndBottom((int) delta);
+        }
     }
 
     private void onRelease(int velocity) {
@@ -419,14 +453,14 @@ public class FlyRefreshLayout extends ViewGroup {
 
         @Override
         public void run() {
-            boolean finish = !mScroller.computeScrollOffset() || mScroller.isFinished();
+            boolean finish = !mScroller.computeScrollOffset();
             int curY = mScroller.getCurrY();
             int deltaY = mHeaderController.moveTo(curY);
             //Log.d(TAG, String.format("Scroller: currY = %d, deltaY = %d", curY, deltaY));
 
             if (!finish) {
                 movePos(deltaY);
-                post(this);
+                postDelayed(this, 10);
             } else {
                 finish();
             }
@@ -462,8 +496,12 @@ public class FlyRefreshLayout extends ViewGroup {
             }
             mHeaderController.startMove();
 
+            mScroller.setFriction(0.9f);
             mScroller.fling(0, mStart, 0, velocity, 0, 0, mHeaderController.getMinHeight(),
                     mHeaderController.getMaxHeight());
+
+            //Log.d(TAG, String.format("Scroller: velocity = %d, duration = %d", velocity, mScroller.getDuration()));
+
             post(this);
             mIsRunning = true;
         }

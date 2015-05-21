@@ -6,5 +6,6 @@
         <attr name="frv_header_shrink_height" format="dimension" />
         <attr name="frv_header" format="reference" />
         <attr name="frv_content" format="reference" />
+        <attr name="frv_action" format="reference" />
     </declare-styleable>
 </resources>
