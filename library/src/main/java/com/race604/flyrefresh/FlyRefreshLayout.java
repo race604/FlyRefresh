@@ -6,6 +6,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.RotateDrawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -18,6 +19,7 @@ import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Scroller;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.race604.flyrefresh.internal.RotatableDrawable;
 import com.race604.utils.UIUtils;
 
 /**
@@ -45,7 +47,7 @@ public class FlyRefreshLayout extends ViewGroup {
     private boolean mPreventForHorizontal = false;
     private boolean mDisableWhenHorizontalMove = false;
 
-    private Drawable mActionDrawable;
+    private RotatableDrawable mActionDrawable;
     private FloatingActionButton mActionView;
     private View mHeaderView;
     protected View mContent;
@@ -54,6 +56,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
     private ScrollChecker mScrollChecker;
     private VelocityTracker mVelocityTracker;
+    private ValueAnimator mBounceAnim;
     private int mMaxVelocity;
 
     public FlyRefreshLayout(Context context) {
@@ -91,7 +94,10 @@ public class FlyRefreshLayout extends ViewGroup {
             mHeaderId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_header, mHeaderId);
             mContentId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_content, mContentId);
 
-            mActionDrawable = arr.getDrawable(R.styleable.FlyRefreshLayout_frv_action);
+            Drawable actionDrawable = arr.getDrawable(R.styleable.FlyRefreshLayout_frv_action);
+            if (actionDrawable != null) {
+                mActionDrawable = new RotatableDrawable(actionDrawable);
+            }
 
             arr.recycle();
         }
@@ -258,7 +264,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
     private float getInitVelocity() {
         if (mVelocityTracker != null) {
-            mVelocityTracker.computeCurrentVelocity(1000/*, mMaxVelocity*/);
+            mVelocityTracker.computeCurrentVelocity(1000, mMaxVelocity);
             return mVelocityTracker.getYVelocity();
         }
         return 0;
@@ -280,8 +286,8 @@ public class FlyRefreshLayout extends ViewGroup {
 
                 if (mHeaderController.isInTouch()) {
                     mHeaderController.onTouchRelease();
+                    onRelease((int)initVelocity);
                     if (mHeaderController.hasMoved()) {
-                        onRelease((int)initVelocity);
                         sendCancelEvent();
                         return true;
                     }
@@ -294,6 +300,9 @@ public class FlyRefreshLayout extends ViewGroup {
                 mDownEvent = ev;
                 mHeaderController.onTouchDown(ev.getX(), ev.getY());
 
+                if (mBounceAnim != null && mBounceAnim.isRunning()) {
+                    mBounceAnim.cancel();
+                }
                 mScrollChecker.abortIfWorking();
 
                 mPreventForHorizontal = false;
@@ -379,6 +388,11 @@ public class FlyRefreshLayout extends ViewGroup {
         if (mActionView != null) {
             mActionView.offsetTopAndBottom((int) delta);
         }
+
+        if (mActionDrawable != null && mHeaderController.isOverHeight()) {
+            mActionDrawable.setDegree((-30) * mHeaderController.getOverPercentage());
+            mActionDrawable.invalidateSelf();
+        }
     }
 
     private void onRelease(int velocity) {
@@ -387,17 +401,17 @@ public class FlyRefreshLayout extends ViewGroup {
 
     private void onScrollFinish() {
         if (mHeaderController.isOverHeight()) {
-            ValueAnimator bounceAnim = ObjectAnimator.ofFloat(mHeaderController.getCurrentPos(), mHeaderController.getHeight());
-            bounceAnim.setInterpolator(new AnticipateOvershootInterpolator());
-            bounceAnim.setDuration(500);
-            bounceAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            mBounceAnim = ObjectAnimator.ofFloat(mHeaderController.getCurrentPos(), mHeaderController.getHeight());
+            mBounceAnim.setInterpolator(new AnticipateOvershootInterpolator());
+            mBounceAnim.setDuration(500);
+            mBounceAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
                     float value = (float) animation.getAnimatedValue();
                     movePos(mHeaderController.moveTo(value));
                 }
             });
-            bounceAnim.start();
+            mBounceAnim.start();
         }
     }
 
@@ -496,7 +510,7 @@ public class FlyRefreshLayout extends ViewGroup {
             }
             mHeaderController.startMove();
 
-            mScroller.setFriction(0.9f);
+            mScroller.setFriction(ViewConfiguration.getScrollFriction() * 4);
             mScroller.fling(0, mStart, 0, velocity, 0, 0, mHeaderController.getMinHeight(),
                     mHeaderController.getMaxHeight());
 

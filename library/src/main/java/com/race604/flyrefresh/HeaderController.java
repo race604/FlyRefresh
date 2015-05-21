@@ -8,6 +8,7 @@ public class HeaderController {
     private int mHeight;
     private int mMaxHegiht;
     private int mMinHegiht;
+    private float mOverDistance;
 
     private float mResistance = 0.5f;
     private float mStartX;
@@ -27,6 +28,7 @@ public class HeaderController {
         mHeight = Math.max(0, height);
         mMaxHegiht = Math.max(0, maxHeight);
         mMinHegiht = Math.max(0, minHeight);
+        mOverDistance = mMaxHegiht - mHeight;
 
         mCurrentPos = mStartPos = mHeight;
     }
@@ -120,5 +122,12 @@ public class HeaderController {
 
     public boolean isOverHeight() {
         return mCurrentPos > mHeight;
+    }
+
+    public float getOverPercentage() {
+        if (mCurrentPos > mHeight) {
+            return (mCurrentPos - mHeight) / mOverDistance;
+        }
+        return 0;
     }
 }
