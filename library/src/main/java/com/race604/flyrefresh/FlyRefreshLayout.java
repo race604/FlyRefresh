@@ -49,6 +49,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
     private ScrollChecker mScrollChecker;
     private VelocityTracker mVelocityTracker;
+    private int mMaxVelocity;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -94,6 +95,8 @@ public class FlyRefreshLayout extends ViewGroup {
         mScrollHandler = new DefalutScrollHandler();
 
         mScrollChecker = new ScrollChecker();
+        mVelocityTracker = VelocityTracker.obtain();
+        mMaxVelocity = conf.getScaledMaximumFlingVelocity();
     }
 
     public void setScrollHandler(IScrollHandler handler) {
@@ -191,8 +194,7 @@ public class FlyRefreshLayout extends ViewGroup {
     }
 
     private void sendCancelEvent() {
-        MotionEvent last = mDownEvent;
-        last = mLastMoveEvent;
+        MotionEvent last = mLastMoveEvent;
         MotionEvent e = MotionEvent.obtain(last.getDownTime(),
                 last.getEventTime() + ViewConfiguration.getLongPressTimeout(),
                 MotionEvent.ACTION_CANCEL, last.getX(), last.getY(), last.getMetaState());
@@ -206,18 +208,45 @@ public class FlyRefreshLayout extends ViewGroup {
         super.dispatchTouchEvent(e);
     }
 
+    private void obtainVelocityTracker(MotionEvent event) {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        }
+        mVelocityTracker.addMovement(event);
+    }
+
+    private void releaseVelocityTracker() {
+        if (mVelocityTracker != null) {
+            mVelocityTracker.recycle();
+            mVelocityTracker = null;
+        }
+    }
+
+    private float getInitVelocity() {
+        if (mVelocityTracker != null) {
+            mVelocityTracker.computeCurrentVelocity(1000);
+            return mVelocityTracker.getYVelocity();
+        }
+        return 0;
+    }
+
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (!isEnabled() || mContent == null || mHeaderView == null) {
             return super.dispatchTouchEvent(ev);
         }
 
+        obtainVelocityTracker(ev);
         int action = ev.getAction();
         switch (action) {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                mHeaderController.onTouchRelease();
+                final float initVelocity = getInitVelocity();
+                releaseVelocityTracker();
+
                 if (mHeaderController.isInTouch()) {
+                    mHeaderController.onTouchRelease();
+                    onRelease((int)initVelocity);
                     if (mHeaderController.hasMoved()) {
                         sendCancelEvent();
                         return true;
@@ -226,7 +255,6 @@ public class FlyRefreshLayout extends ViewGroup {
                 } else {
                     return super.dispatchTouchEvent(ev);
                 }
-
             case MotionEvent.ACTION_DOWN:
                 mHasSendCancelEvent = false;
                 mDownEvent = ev;
@@ -301,10 +329,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
         // has reached the top
         int delta = mHeaderController.willMove(deltaY);
-
-        if (D) {
-            Log.d(TAG, String.format("movePos deltaY = %s, delta = %d", deltaY, delta));
-        }
+        //Log.d(TAG, String.format("movePos deltaY = %s, delta = %d", deltaY, delta));
 
         if (delta == 0) {
             return;
@@ -315,6 +340,10 @@ public class FlyRefreshLayout extends ViewGroup {
         }
 
         mContent.offsetTopAndBottom(delta);
+    }
+
+    private void onRelease(int velocity) {
+        mScrollChecker.tryToScrollTo(velocity);
     }
 
     @Override
@@ -363,7 +392,6 @@ public class FlyRefreshLayout extends ViewGroup {
         private Scroller mScroller;
         private boolean mIsRunning = false;
         private int mStart;
-        private int mTo;
 
         public ScrollChecker() {
             mScroller = new Scroller(getContext());
@@ -373,7 +401,8 @@ public class FlyRefreshLayout extends ViewGroup {
         public void run() {
             boolean finish = !mScroller.computeScrollOffset() || mScroller.isFinished();
             int curY = mScroller.getCurrY();
-            int deltaY = curY - mLastFlingY;
+            int deltaY = curY - mStart;
+            //Log.d(TAG, String.format("Scroller: currY = %d, deltaY = %d", curY, deltaY));
 
             if (!finish) {
                 mLastFlingY = curY;
@@ -405,23 +434,20 @@ public class FlyRefreshLayout extends ViewGroup {
             }
         }
 
-        public void tryToScrollTo(int to, int duration) {
-            if (mHeaderController.isAlreadyHere(to)) {
-                return;
-            }
+        public void tryToScrollTo(int velocity) {
             mStart = mHeaderController.getCurrentPos();
-            mTo = to;
-            int distance = to - mStart;
-
             removeCallbacks(this);
 
-            mLastFlingY = 0;
+            mLastFlingY = mStart;
 
             // fix #47: Scroller should be reused, https://github.com/liaohuqiu/android-Ultra-Pull-To-Refresh/issues/47
             if (!mScroller.isFinished()) {
                 mScroller.forceFinished(true);
             }
-            mScroller.startScroll(0, 0, 0, distance, duration);
+            mHeaderController.startMove();
+
+            mScroller.fling(0, mStart, 0, velocity, 0, 0, mHeaderController.getMinHeight(),
+                    mHeaderController.getMaxHeight());
             post(this);
             mIsRunning = true;
         }

@@ -7,7 +7,7 @@
     app:frv_header="@+id/header"
     app:frv_header_expand_height="200dp"
     app:frv_header_height="160dp"
-    app:frv_header_shrink_height="20dp"
+    app:frv_header_shrink_height="48dp"
     tools:context=".MainActivity">
 
     <FrameLayout

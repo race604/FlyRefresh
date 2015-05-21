@@ -31,6 +31,18 @@ public class HeaderController {
         mCurrentPos = mStartPos = mHeight;
     }
 
+    public int getMaxHeight() {
+        return mMaxHegiht;
+    }
+
+    public int getMinHeight() {
+        return mMinHegiht;
+    }
+
+    public int getHeight() {
+        return mHeight;
+    }
+
     public int getCurrentPos() {
         return mCurrentPos;
     }
@@ -67,12 +79,16 @@ public class HeaderController {
         mStartX = x;
         mStartY = y;
         mOffsetX = mOffsetY = 0;
-        mStartPos = mCurrentPos;
+        startMove();
     }
 
     public void onTouchMove(float x, float y) {
         mOffsetX = (int) (x - mStartX);
         mOffsetY = (int) (y - mStartY);
+    }
+
+    public void startMove() {
+        mStartPos = mCurrentPos;
     }
 
     public int willMove(float deltaY) {
