@@ -1,18 +1,19 @@
 package com.race604.flyrefresh;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.support.v4.view.VelocityTrackerCompat;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
+import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Scroller;
 
 import com.race604.utils.UIUtils;
@@ -300,12 +301,12 @@ public class FlyRefreshLayout extends ViewGroup {
                             mHeaderController.onTouchDown(ev.getX(), ev.getY());
                             offsetY = mHeaderController.getOffsetY();
                         }
-                        movePos(offsetY);
+                        willMovePos(offsetY);
                         return true;
                     }
                 } else {
                     if (mHeaderController.canMoveUp()) {
-                        movePos(offsetY);
+                        willMovePos(offsetY);
                         return true;
                     } else {
                         if (mHeaderController.isInTouch()) {
@@ -325,11 +326,11 @@ public class FlyRefreshLayout extends ViewGroup {
      *
      * @param deltaY
      */
-    private void movePos(float deltaY) {
+    private void willMovePos(float deltaY) {
 
         // has reached the top
         int delta = mHeaderController.willMove(deltaY);
-        //Log.d(TAG, String.format("movePos deltaY = %s, delta = %d", deltaY, delta));
+        //Log.d(TAG, String.format("willMovePos deltaY = %s, delta = %d", deltaY, delta));
 
         if (delta == 0) {
             return;
@@ -339,11 +340,31 @@ public class FlyRefreshLayout extends ViewGroup {
             sendCancelEvent();
         }
 
-        mContent.offsetTopAndBottom(delta);
+        movePos(delta);
+    }
+
+    private void movePos(float delta) {
+        mContent.offsetTopAndBottom((int)delta);
     }
 
     private void onRelease(int velocity) {
         mScrollChecker.tryToScrollTo(velocity);
+    }
+
+    private void onScrollFinish() {
+        if (mHeaderController.isOverHeight()) {
+            ValueAnimator bounceAnim = ObjectAnimator.ofFloat(mHeaderController.getCurrentPos(), mHeaderController.getHeight());
+            bounceAnim.setInterpolator(new AnticipateOvershootInterpolator());
+            bounceAnim.setDuration(500);
+            bounceAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float value = (float) animation.getAnimatedValue();
+                    movePos(mHeaderController.moveTo(value));
+                }
+            });
+            bounceAnim.start();
+        }
     }
 
     @Override
@@ -388,7 +409,6 @@ public class FlyRefreshLayout extends ViewGroup {
 
     class ScrollChecker implements Runnable {
 
-        private int mLastFlingY;
         private Scroller mScroller;
         private boolean mIsRunning = false;
         private int mStart;
@@ -401,11 +421,10 @@ public class FlyRefreshLayout extends ViewGroup {
         public void run() {
             boolean finish = !mScroller.computeScrollOffset() || mScroller.isFinished();
             int curY = mScroller.getCurrY();
-            int deltaY = curY - mStart;
+            int deltaY = mHeaderController.moveTo(curY);
             //Log.d(TAG, String.format("Scroller: currY = %d, deltaY = %d", curY, deltaY));
 
             if (!finish) {
-                mLastFlingY = curY;
                 movePos(deltaY);
                 post(this);
             } else {
@@ -415,12 +434,11 @@ public class FlyRefreshLayout extends ViewGroup {
 
         private void finish() {
             reset();
-            //onPtrScrollFinish();
+            onScrollFinish();
         }
 
         private void reset() {
             mIsRunning = false;
-            mLastFlingY = 0;
             removeCallbacks(this);
         }
 
@@ -438,8 +456,6 @@ public class FlyRefreshLayout extends ViewGroup {
             mStart = mHeaderController.getCurrentPos();
             removeCallbacks(this);
 
-            mLastFlingY = mStart;
-
             // fix #47: Scroller should be reused, https://github.com/liaohuqiu/android-Ultra-Pull-To-Refresh/issues/47
             if (!mScroller.isFinished()) {
                 mScroller.forceFinished(true);
@@ -452,4 +468,5 @@ public class FlyRefreshLayout extends ViewGroup {
             mIsRunning = true;
         }
     }
+
 }

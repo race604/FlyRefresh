@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:frv_header="@+id/header"
-    app:frv_header_expand_height="200dp"
+    app:frv_header_expand_height="240dp"
     app:frv_header_height="160dp"
     app:frv_header_shrink_height="48dp"
     tools:context=".MainActivity">
@@ -13,9 +13,9 @@
     <FrameLayout
         android:id="@id/header"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="240dp"
         android:background="#0099cc"
-        android:paddingBottom="40dp">
+        android:paddingBottom="80dp">
 
         <TextView
             android:layout_width="wrap_content"

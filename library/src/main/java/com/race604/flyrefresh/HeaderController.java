@@ -111,7 +111,14 @@ public class HeaderController {
         return move;
     }
 
-    public boolean isAlreadyHere(int to) {
-        return mCurrentPos == to;
+    public int moveTo(float pos) {
+        int offsetY = Math.max(mMinHegiht, Math.min(mMaxHegiht, (int)pos));
+        int delta = offsetY - mCurrentPos;
+        mCurrentPos = offsetY;
+        return delta;
+    }
+
+    public boolean isOverHeight() {
+        return mCurrentPos > mHeight;
     }
 }
