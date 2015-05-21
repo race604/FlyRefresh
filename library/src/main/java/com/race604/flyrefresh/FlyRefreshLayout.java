@@ -4,12 +4,16 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Build;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.Scroller;
 
 import com.race604.utils.UIUtils;
 
@@ -41,6 +45,10 @@ public class FlyRefreshLayout extends ViewGroup {
     private View mHeaderView;
     protected View mContent;
     protected HeaderController mHeaderController;
+    private IScrollHandler mScrollHandler;
+
+    private ScrollChecker mScrollChecker;
+    private VelocityTracker mVelocityTracker;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -83,6 +91,13 @@ public class FlyRefreshLayout extends ViewGroup {
         mHeaderController = new HeaderController(mHeaderHeight, mHeaderExpandHeight, mHeaderShrinkHeight);
         final ViewConfiguration conf = ViewConfiguration.get(getContext());
         mPagingTouchSlop = conf.getScaledTouchSlop() * 2;
+        mScrollHandler = new DefalutScrollHandler();
+
+        mScrollChecker = new ScrollChecker();
+    }
+
+    public void setScrollHandler(IScrollHandler handler) {
+        mScrollHandler = handler;
     }
 
     @Override
@@ -142,7 +157,7 @@ public class FlyRefreshLayout extends ViewGroup {
         }
 
         if (mContent != null) {
-            measureChildWithMargins(mHeaderView, widthMeasureSpec, 0, heightMeasureSpec, mHeaderShrinkHeight);
+            measureChildWithMargins(mContent, widthMeasureSpec, 0, heightMeasureSpec, mHeaderShrinkHeight);
         }
     }
 
@@ -152,7 +167,7 @@ public class FlyRefreshLayout extends ViewGroup {
     }
 
     private void layoutChildren() {
-        int offsetY = mHeaderController.getOffsetY();
+        int offsetY = mHeaderController.getCurrentPos();
         int paddingLeft = getPaddingLeft();
         int paddingTop = getPaddingTop();
 
@@ -184,6 +199,13 @@ public class FlyRefreshLayout extends ViewGroup {
         super.dispatchTouchEvent(e);
     }
 
+    private void sendDownEvent() {
+        final MotionEvent last = mLastMoveEvent;
+        MotionEvent e = MotionEvent.obtain(last.getDownTime(), last.getEventTime(),
+                MotionEvent.ACTION_DOWN, last.getX(), last.getY(), last.getMetaState());
+        super.dispatchTouchEvent(e);
+    }
+
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (!isEnabled() || mContent == null || mHeaderView == null) {
@@ -210,6 +232,8 @@ public class FlyRefreshLayout extends ViewGroup {
                 mDownEvent = ev;
                 mHeaderController.onTouchDown(ev.getX(), ev.getY());
 
+                mScrollChecker.abortIfWorking();
+
                 mPreventForHorizontal = false;
                 if (mHeaderController.isInTouch()) {
                     // do nothing, intercept child event
@@ -221,6 +245,7 @@ public class FlyRefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_MOVE:
                 mLastMoveEvent = ev;
                 mHeaderController.onTouchMove(ev.getX(), ev.getY());
+
                 float offsetX = mHeaderController.getOffsetX();
                 float offsetY = mHeaderController.getOffsetY();
 
@@ -234,35 +259,171 @@ public class FlyRefreshLayout extends ViewGroup {
                 }
 
                 boolean moveDown = offsetY > 0;
-                boolean moveUp = !moveDown;
-                boolean canMoveUp = mHeaderController.hasMoved();
 
-                // disable move when header not reach top
-                if (moveDown && mContent != null && !checkCanDoScrollUp(mContent)) {
-                    return super.dispatchTouchEvent(ev);
+                if (moveDown) {
+                    if (mContent != null && mScrollHandler.canScrollUp(mContent)) {
+                        if (mHeaderController.isInTouch()) {
+                            mHeaderController.onTouchRelease();
+                            sendDownEvent();
+                        }
+                        return super.dispatchTouchEvent(ev);
+                    } else {
+                        if (!mHeaderController.isInTouch()) {
+                            mHeaderController.onTouchDown(ev.getX(), ev.getY());
+                            offsetY = mHeaderController.getOffsetY();
+                        }
+                        movePos(offsetY);
+                        return true;
+                    }
+                } else {
+                    if (mHeaderController.canMoveUp()) {
+                        movePos(offsetY);
+                        return true;
+                    } else {
+                        if (mHeaderController.isInTouch()) {
+                            mHeaderController.onTouchRelease();
+                            sendDownEvent();
+                        }
+                        return super.dispatchTouchEvent(ev);
+                    }
                 }
 
-                if ((moveUp && canMoveUp) || moveDown) {
-                    //movePos(offsetY);
-                    return true;
-                }
         }
         return super.dispatchTouchEvent(ev);
     }
 
-    private static boolean checkCanDoScrollUp(View view) {
-        if (android.os.Build.VERSION.SDK_INT < 14) {
-            if (view instanceof AbsListView) {
-                final AbsListView absListView = (AbsListView) view;
-                return absListView.getChildCount() > 0
-                        && (absListView.getFirstVisiblePosition() > 0 || absListView.getChildAt(0)
-                        .getTop() < absListView.getPaddingTop());
-            } else {
-                return view.getScrollY() > 0;
-            }
-        } else {
-            return view.canScrollVertically(-1);
+    /**
+     * if deltaY > 0, move the content down
+     *
+     * @param deltaY
+     */
+    private void movePos(float deltaY) {
+
+        // has reached the top
+        int delta = mHeaderController.willMove(deltaY);
+
+        if (D) {
+            Log.d(TAG, String.format("movePos deltaY = %s, delta = %d", deltaY, delta));
+        }
+
+        if (delta == 0) {
+            return;
+        }
+
+        if (!mHasSendCancelEvent && mHeaderController.isInTouch()) {
+            sendCancelEvent();
+        }
+
+        mContent.offsetTopAndBottom(delta);
+    }
+
+    @Override
+    protected boolean checkLayoutParams(ViewGroup.LayoutParams p) {
+        return p instanceof LayoutParams;
+    }
+
+    @Override
+    protected ViewGroup.LayoutParams generateDefaultLayoutParams() {
+        return new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+    }
+
+    @Override
+    protected ViewGroup.LayoutParams generateLayoutParams(ViewGroup.LayoutParams p) {
+        return new LayoutParams(p);
+    }
+
+    @Override
+    public ViewGroup.LayoutParams generateLayoutParams(AttributeSet attrs) {
+        return new LayoutParams(getContext(), attrs);
+    }
+
+    public static class LayoutParams extends MarginLayoutParams {
+
+        public LayoutParams(Context c, AttributeSet attrs) {
+            super(c, attrs);
+        }
+
+        public LayoutParams(int width, int height) {
+            super(width, height);
+        }
+
+        @SuppressWarnings({"unused"})
+        public LayoutParams(MarginLayoutParams source) {
+            super(source);
+        }
+
+        public LayoutParams(ViewGroup.LayoutParams source) {
+            super(source);
         }
     }
 
+    class ScrollChecker implements Runnable {
+
+        private int mLastFlingY;
+        private Scroller mScroller;
+        private boolean mIsRunning = false;
+        private int mStart;
+        private int mTo;
+
+        public ScrollChecker() {
+            mScroller = new Scroller(getContext());
+        }
+
+        @Override
+        public void run() {
+            boolean finish = !mScroller.computeScrollOffset() || mScroller.isFinished();
+            int curY = mScroller.getCurrY();
+            int deltaY = curY - mLastFlingY;
+
+            if (!finish) {
+                mLastFlingY = curY;
+                movePos(deltaY);
+                post(this);
+            } else {
+                finish();
+            }
+        }
+
+        private void finish() {
+            reset();
+            //onPtrScrollFinish();
+        }
+
+        private void reset() {
+            mIsRunning = false;
+            mLastFlingY = 0;
+            removeCallbacks(this);
+        }
+
+        public void abortIfWorking() {
+            if (mIsRunning) {
+                if (!mScroller.isFinished()) {
+                    mScroller.forceFinished(true);
+                }
+                //onPtrScrollAbort();
+                reset();
+            }
+        }
+
+        public void tryToScrollTo(int to, int duration) {
+            if (mHeaderController.isAlreadyHere(to)) {
+                return;
+            }
+            mStart = mHeaderController.getCurrentPos();
+            mTo = to;
+            int distance = to - mStart;
+
+            removeCallbacks(this);
+
+            mLastFlingY = 0;
+
+            // fix #47: Scroller should be reused, https://github.com/liaohuqiu/android-Ultra-Pull-To-Refresh/issues/47
+            if (!mScroller.isFinished()) {
+                mScroller.forceFinished(true);
+            }
+            mScroller.startScroll(0, 0, 0, distance, duration);
+            post(this);
+            mIsRunning = true;
+        }
+    }
 }

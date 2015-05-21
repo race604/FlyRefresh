@@ -1,19 +1,37 @@
 package com.race604.flyrefresh.sample;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
-import com.race604.flyrefresh.R;
+import com.race604.flyrefresh.FlyRefreshLayout;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
+
+    private FlyRefreshLayout mFlylayout;
+    private ListView mListView;
+
+    private static final String[] INIT_DATA = {"One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight",
+            "Nine", "Ten"};
+
+    private ArrayAdapter<String> mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
+        mListView = (ListView) findViewById(R.id.list);
+
+        mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
+        mAdapter.addAll(INIT_DATA);
+        mAdapter.addAll(INIT_DATA);
+        mListView.setAdapter(mAdapter);
     }
 
     @Override
