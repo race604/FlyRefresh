@@ -1,5 +1,6 @@
 package com.race604.flyrefresh;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -8,9 +9,6 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.support.v4.view.animation.FastOutLinearInInterpolator;
-import android.support.v4.view.animation.FastOutSlowInInterpolator;
-import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v4.view.animation.PathInterpolatorCompat;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -18,10 +16,9 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.AnimationSet;
-import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.Interpolator;
 import android.widget.ImageView;
 import android.widget.Scroller;
 
@@ -37,6 +34,8 @@ public class FlyRefreshLayout extends ViewGroup {
     private static final String TAG = FlyRefreshLayout.class.getCanonicalName();
     private static final boolean D = true;
 
+    private final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(48);
+    private final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
     private final static int DEFAULT_EXPAND = UIUtils.dpToPx(40);
     private final static int DEFAULT_HEIGHT = 0;
 
@@ -66,6 +65,7 @@ public class FlyRefreshLayout extends ViewGroup {
     private VelocityTracker mVelocityTracker;
     private ValueAnimator mBounceAnim;
     private int mMaxVelocity;
+    private boolean mIsFlying = false;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -232,12 +232,13 @@ public class FlyRefreshLayout extends ViewGroup {
         }
 
         if (mActionView != null) {
-            final int center = UIUtils.dpToPx(48);
+            final int center = ACTION_BUTTON_CENTER;
             int halfWidth = (mActionView.getMeasuredWidth() + 1) / 2;
             int halfHeight = (mActionView.getMeasuredHeight() + 1) / 2;
 
-            mActionView.layout(center - halfWidth, offsetY - halfHeight,
-                    center + halfWidth, offsetY + halfHeight);
+            final int adjustCenter = UIUtils.dpToPx(2);
+            mActionView.layout(center - halfWidth , offsetY - halfHeight + adjustCenter,
+                    center + halfWidth, offsetY + halfHeight + adjustCenter);
 
             halfWidth = (mFlyView.getMeasuredWidth() + 1) / 2;
             halfHeight = (mFlyView.getMeasuredHeight() + 1) / 2;
@@ -401,6 +402,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
         if (mActionView != null) {
             mActionView.offsetTopAndBottom((int) delta);
+
             mFlyView.offsetTopAndBottom((int) delta);
 
             if (mHeaderController.isOverHeight()) {
@@ -435,20 +437,93 @@ public class FlyRefreshLayout extends ViewGroup {
         }
     }
 
+    private void resetViewState(View view) {
+        view.clearAnimation();
+        view.clearAnimation();
+        view.setTranslationX(0);
+        view.setTranslationY(0);
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.setRotation(0);
+        view.setRotationX(0);
+        view.setRotationY(0);
+    }
+
     private void sendFlyAnimation() {
-        AnimatorSet flyAnim = new AnimatorSet();
-        flyAnim.setDuration(1000);
-        ObjectAnimator transY = ObjectAnimator.ofFloat(mFlyView, "translationY", 0, mFlyView.getHeight() * 2 - mHeaderController.getCurrentPos());
-        //transY.setInterpolator(new DecelerateInterpolator(2));
-        flyAnim.playTogether(
-                ObjectAnimator.ofFloat(mFlyView, "translationX", 0, getWidth()),
-                transY,
-                ObjectAnimator.ofFloat(mFlyView, "rotationX", 0, 60),
+
+        resetViewState(mFlyView);
+
+        AnimatorSet flyUpAnim = new AnimatorSet();
+        flyUpAnim.setDuration(1000);
+
+        ObjectAnimator transX = ObjectAnimator.ofFloat(mFlyView, "translationX", 0, getWidth());
+
+        ObjectAnimator transY = ObjectAnimator.ofFloat(mFlyView, "translationY", 0, -mHeaderController.getHeight());
+        transY.setInterpolator(PathInterpolatorCompat.create(0.1f, 0.9f));
+
+        ObjectAnimator rotation = ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0);
+        rotation.setInterpolator(new DecelerateInterpolator());
+        ObjectAnimator rotationX = ObjectAnimator.ofFloat(mFlyView, "rotationX", 0, 60);
+        rotationX.setInterpolator(new DecelerateInterpolator());
+
+        flyUpAnim.playTogether(transX, transY, rotationX,
                 ObjectAnimator.ofFloat(mFlyView, "scaleX", 1, 0.5f),
                 ObjectAnimator.ofFloat(mFlyView, "scaleY", 1, 0.5f),
-                ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0)
+                rotation
         );
-        flyAnim.setInterpolator(PathInterpolatorCompat.create(0, 0.7f, 0.9f, 1f));
+
+        final int offDistX = -ACTION_ICON_SIZE/2-ACTION_BUTTON_CENTER;
+        AnimatorSet flyDownAnim = new AnimatorSet();
+        flyDownAnim.setDuration(1000);
+        ObjectAnimator transX1 = ObjectAnimator.ofFloat(mFlyView, "translationX", getWidth(), offDistX);
+        ObjectAnimator transY1 = ObjectAnimator.ofFloat(mFlyView, "translationY", -mHeaderController.getHeight(), 0);
+        transY1.setInterpolator(PathInterpolatorCompat.create(0.1f, 1f));
+        ObjectAnimator rotation1 = ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0);
+        rotation1.setInterpolator(new AccelerateInterpolator());
+        flyDownAnim.playTogether(transX1, transY1,
+                ObjectAnimator.ofFloat(mFlyView, "scaleX", 0.5f, 0.9f),
+                ObjectAnimator.ofFloat(mFlyView, "scaleY", 0.5f, 0.9f),
+                rotation1
+        );
+        flyDownAnim.setStartDelay(400);
+        flyDownAnim.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                mFlyView.setRotationY(180);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+            }
+        });
+
+        AnimatorSet flyInAnim = new AnimatorSet();
+        flyInAnim.setDuration(500);
+        flyInAnim.setInterpolator(new DecelerateInterpolator());
+        ObjectAnimator tranX2 = ObjectAnimator.ofFloat(mFlyView, "translationX", offDistX, 0);
+        ObjectAnimator rotationX2 = ObjectAnimator.ofFloat(mFlyView, "rotationX", 30, 0);
+        flyInAnim.playTogether(tranX2, rotationX2,
+                ObjectAnimator.ofFloat(mFlyView, "scaleX", 0.9f, 1f),
+                ObjectAnimator.ofFloat(mFlyView, "scaleY", 0.9f, 1f));
+        flyInAnim.setStartDelay(100);
+        flyInAnim.addListener(new SimpleAnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                super.onAnimationStart(animation);
+                mFlyView.setRotationY(0);
+            }
+        });
+
+        AnimatorSet flyAnim = new AnimatorSet();
+        flyAnim.playSequentially(flyUpAnim, flyDownAnim, flyInAnim);
         flyAnim.start();
     }
 
@@ -558,4 +633,22 @@ public class FlyRefreshLayout extends ViewGroup {
         }
     }
 
+    private static class SimpleAnimatorListener implements Animator.AnimatorListener {
+
+        @Override
+        public void onAnimationStart(Animator animation) {
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {
+        }
+
+        @Override
+        public void onAnimationRepeat(Animator animation) {
+        }
+    }
 }
