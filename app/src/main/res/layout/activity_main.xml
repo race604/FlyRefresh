@@ -23,6 +23,13 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="@string/hello_world" />
+
+        <View
+            android:id="@+id/tree"
+            android:layout_width="100dp"
+            android:layout_height="200dp"
+            android:background="#fff"
+            android:layout_gravity="top|left"/>
     </FrameLayout>
 
     <ListView android:id="@+id/list"

@@ -457,11 +457,9 @@ public class FlyRefreshLayout extends ViewGroup {
         flyUpAnim.setDuration(1000);
 
         ObjectAnimator transX = ObjectAnimator.ofFloat(mFlyView, "translationX", 0, getWidth());
-
         ObjectAnimator transY = ObjectAnimator.ofFloat(mFlyView, "translationY", 0, -mHeaderController.getHeight());
         transY.setInterpolator(PathInterpolatorCompat.create(0.1f, 0.9f));
-
-        ObjectAnimator rotation = ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0);
+        ObjectAnimator rotation = ObjectAnimator.ofFloat(mFlyView, "rotation", -45, 0);
         rotation.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator rotationX = ObjectAnimator.ofFloat(mFlyView, "rotationX", 0, 60);
         rotationX.setInterpolator(new DecelerateInterpolator());

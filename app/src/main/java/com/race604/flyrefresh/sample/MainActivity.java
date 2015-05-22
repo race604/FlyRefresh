@@ -4,10 +4,12 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.race604.flyrefresh.FlyRefreshLayout;
+import com.race604.flyrefresh.internal.TreeDrawable;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -26,6 +28,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
+        View tree = mFlylayout.findViewById(R.id.tree);
+        tree.setBackgroundDrawable(new TreeDrawable());
+
+
         mListView = (ListView) findViewById(R.id.list);
 
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
