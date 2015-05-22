@@ -130,4 +130,8 @@ public class HeaderController {
         }
         return 0;
     }
+
+    public boolean needSendRefresh() {
+        return getOverPercentage() > 0.9;
+    }
 }

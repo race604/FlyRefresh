@@ -1,25 +1,32 @@
 package com.race604.flyrefresh;
 
+import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.RotateDrawable;
 import android.os.Build;
+import android.support.v4.view.animation.FastOutLinearInInterpolator;
+import android.support.v4.view.animation.FastOutSlowInInterpolator;
+import android.support.v4.view.animation.LinearOutSlowInInterpolator;
+import android.support.v4.view.animation.PathInterpolatorCompat;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.animation.AnimationSet;
 import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
+import android.widget.ImageView;
 import android.widget.Scroller;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
-import com.race604.flyrefresh.internal.RotatableDrawable;
+import com.race604.flyrefresh.internal.ElasticOutInterpolator;
 import com.race604.utils.UIUtils;
 
 /**
@@ -47,8 +54,9 @@ public class FlyRefreshLayout extends ViewGroup {
     private boolean mPreventForHorizontal = false;
     private boolean mDisableWhenHorizontalMove = false;
 
-    private RotatableDrawable mActionDrawable;
+    private Drawable mActionDrawable;
     private FloatingActionButton mActionView;
+    private ImageView mFlyView;
     private View mHeaderView;
     protected View mContent;
     protected HeaderController mHeaderController;
@@ -94,10 +102,7 @@ public class FlyRefreshLayout extends ViewGroup {
             mHeaderId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_header, mHeaderId);
             mContentId = arr.getResourceId(R.styleable.FlyRefreshLayout_frv_content, mContentId);
 
-            Drawable actionDrawable = arr.getDrawable(R.styleable.FlyRefreshLayout_frv_action);
-            if (actionDrawable != null) {
-                mActionDrawable = new RotatableDrawable(actionDrawable);
-            }
+            mActionDrawable = arr.getDrawable(R.styleable.FlyRefreshLayout_frv_action);
 
             arr.recycle();
         }
@@ -164,17 +169,17 @@ public class FlyRefreshLayout extends ViewGroup {
             final int bgColor = UIUtils.getThemeColorFromAttrOrRes(getContext(), R.attr.colorAccent, R.color.accent);
             final int pressedColor = UIUtils.darkerColor(bgColor, 0.8f);
             mActionView = new FloatingActionButton(getContext());
-            mActionView.setIconDrawable(mActionDrawable);
+            //mActionView.setIconDrawable(mActionDrawable);
             mActionView.setColorNormal(bgColor);
             mActionView.setColorPressed(pressedColor);
 
             addView(mActionView);
-            mActionView.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.d(TAG, "Clicked");
-                }
-            });
+
+            mFlyView = new ImageView(getContext());
+            mFlyView.setImageDrawable(mActionDrawable);
+            mFlyView.setScaleType(ImageView.ScaleType.FIT_XY);
+            final int iconSize = UIUtils.dpToPx(32);
+            addView(mFlyView, new LayoutParams(iconSize, iconSize));
         }
 
         super.onFinishInflate();
@@ -194,6 +199,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
         if (mActionView != null) {
             measureChild(mActionView, widthMeasureSpec, heightMeasureSpec);
+            measureChild(mFlyView, widthMeasureSpec, heightMeasureSpec);
         }
     }
 
@@ -226,11 +232,19 @@ public class FlyRefreshLayout extends ViewGroup {
         }
 
         if (mActionView != null) {
-            final int left = UIUtils.dpToPx(16);
-            final int right = left + mActionView.getMeasuredWidth();
-            final int halfHeight = mActionView.getMeasuredHeight() / 2;
-            mActionView.layout(left, offsetY - halfHeight, right, offsetY + halfHeight);
+            final int center = UIUtils.dpToPx(48);
+            int halfWidth = (mActionView.getMeasuredWidth() + 1) / 2;
+            int halfHeight = (mActionView.getMeasuredHeight() + 1) / 2;
+
+            mActionView.layout(center - halfWidth, offsetY - halfHeight,
+                    center + halfWidth, offsetY + halfHeight);
+
+            halfWidth = (mFlyView.getMeasuredWidth() + 1) / 2;
+            halfHeight = (mFlyView.getMeasuredHeight() + 1) / 2;
+            mFlyView.layout(center - halfWidth, offsetY - halfHeight,
+                    center + halfWidth, offsetY + halfHeight);
         }
+
     }
 
     private void sendCancelEvent() {
@@ -286,7 +300,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
                 if (mHeaderController.isInTouch()) {
                     mHeaderController.onTouchRelease();
-                    onRelease((int)initVelocity);
+                    onRelease((int) initVelocity);
                     if (mHeaderController.hasMoved()) {
                         sendCancelEvent();
                         return true;
@@ -387,12 +401,14 @@ public class FlyRefreshLayout extends ViewGroup {
 
         if (mActionView != null) {
             mActionView.offsetTopAndBottom((int) delta);
+            mFlyView.offsetTopAndBottom((int) delta);
+
+            if (mHeaderController.isOverHeight()) {
+                float percentage = mHeaderController.getOverPercentage();
+                mFlyView.setRotation((-45) * percentage);
+            }
         }
 
-        if (mActionDrawable != null && mHeaderController.isOverHeight()) {
-            mActionDrawable.setDegree((-30) * mHeaderController.getOverPercentage());
-            mActionDrawable.invalidateSelf();
-        }
     }
 
     private void onRelease(int velocity) {
@@ -402,7 +418,7 @@ public class FlyRefreshLayout extends ViewGroup {
     private void onScrollFinish() {
         if (mHeaderController.isOverHeight()) {
             mBounceAnim = ObjectAnimator.ofFloat(mHeaderController.getCurrentPos(), mHeaderController.getHeight());
-            mBounceAnim.setInterpolator(new AnticipateOvershootInterpolator());
+            mBounceAnim.setInterpolator(new ElasticOutInterpolator());
             mBounceAnim.setDuration(500);
             mBounceAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
@@ -412,7 +428,28 @@ public class FlyRefreshLayout extends ViewGroup {
                 }
             });
             mBounceAnim.start();
+
+            if (mHeaderController.needSendRefresh()) {
+                sendFlyAnimation();
+            }
         }
+    }
+
+    private void sendFlyAnimation() {
+        AnimatorSet flyAnim = new AnimatorSet();
+        flyAnim.setDuration(1000);
+        ObjectAnimator transY = ObjectAnimator.ofFloat(mFlyView, "translationY", 0, mFlyView.getHeight() * 2 - mHeaderController.getCurrentPos());
+        //transY.setInterpolator(new DecelerateInterpolator(2));
+        flyAnim.playTogether(
+                ObjectAnimator.ofFloat(mFlyView, "translationX", 0, getWidth()),
+                transY,
+                ObjectAnimator.ofFloat(mFlyView, "rotationX", 0, 60),
+                ObjectAnimator.ofFloat(mFlyView, "scaleX", 1, 0.5f),
+                ObjectAnimator.ofFloat(mFlyView, "scaleY", 1, 0.5f),
+                ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0)
+        );
+        flyAnim.setInterpolator(PathInterpolatorCompat.create(0, 0.7f, 0.9f, 1f));
+        flyAnim.start();
     }
 
     @Override
