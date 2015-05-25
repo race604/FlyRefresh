@@ -24,11 +24,12 @@
             android:layout_gravity="center"
             android:text="@string/hello_world" />
 
-        <View
+        <ImageView
             android:id="@+id/tree"
             android:layout_width="100dp"
-            android:layout_height="200dp"
+            android:layout_height="100dp"
             android:background="#fff"
+            android:scaleType="center"
             android:layout_gravity="top|left"/>
     </FrameLayout>
 

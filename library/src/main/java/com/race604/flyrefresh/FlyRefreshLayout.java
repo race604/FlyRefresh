@@ -24,6 +24,7 @@ import android.widget.Scroller;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.race604.flyrefresh.internal.ElasticOutInterpolator;
+import com.race604.flyrefresh.internal.SimpleAnimatorListener;
 import com.race604.utils.UIUtils;
 
 /**
@@ -66,6 +67,8 @@ public class FlyRefreshLayout extends ViewGroup {
     private ValueAnimator mBounceAnim;
     private int mMaxVelocity;
     private boolean mIsFlying = false;
+
+    private OnPullListener mPullListener;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -118,6 +121,10 @@ public class FlyRefreshLayout extends ViewGroup {
 
     public void setScrollHandler(IScrollHandler handler) {
         mScrollHandler = handler;
+    }
+
+    public void setOnPullListener(OnPullListener listener) {
+        mPullListener = listener;
     }
 
     @Override
@@ -408,6 +415,10 @@ public class FlyRefreshLayout extends ViewGroup {
             if (mHeaderController.isOverHeight()) {
                 float percentage = mHeaderController.getOverPercentage();
                 mFlyView.setRotation((-45) * percentage);
+
+                if (mPullListener != null) {
+                    mPullListener.onPullProgress(percentage);
+                }
             }
         }
 
@@ -631,22 +642,7 @@ public class FlyRefreshLayout extends ViewGroup {
         }
     }
 
-    private static class SimpleAnimatorListener implements Animator.AnimatorListener {
-
-        @Override
-        public void onAnimationStart(Animator animation) {
-        }
-
-        @Override
-        public void onAnimationEnd(Animator animation) {
-        }
-
-        @Override
-        public void onAnimationCancel(Animator animation) {
-        }
-
-        @Override
-        public void onAnimationRepeat(Animator animation) {
-        }
+    public interface OnPullListener {
+        void onPullProgress(float progress);
     }
 }

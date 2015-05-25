@@ -4,15 +4,15 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 
 import com.race604.flyrefresh.FlyRefreshLayout;
+import com.race604.flyrefresh.internal.MountSenceDrawable;
 import com.race604.flyrefresh.internal.TreeDrawable;
 
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.OnPullListener {
 
     private FlyRefreshLayout mFlylayout;
     private ListView mListView;
@@ -21,16 +21,20 @@ public class MainActivity extends AppCompatActivity {
             "Nine", "Ten"};
 
     private ArrayAdapter<String> mAdapter;
+    private MountSenceDrawable mSenceDrawable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mSenceDrawable = new MountSenceDrawable();
         mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
-        View tree = mFlylayout.findViewById(R.id.tree);
-        tree.setBackgroundDrawable(new TreeDrawable());
 
+        ImageView tree = (ImageView) mFlylayout.findViewById(R.id.tree);
+        tree.setImageDrawable(mSenceDrawable);
+
+        mFlylayout.setOnPullListener(this);
 
         mListView = (ListView) findViewById(R.id.list);
 
@@ -60,5 +64,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onPullProgress(float progress) {
+        mSenceDrawable.setMoveFactor(progress);
+        mSenceDrawable.invalidateSelf();
     }
 }
