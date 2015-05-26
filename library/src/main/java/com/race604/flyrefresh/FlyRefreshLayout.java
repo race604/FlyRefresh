@@ -16,7 +16,6 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
@@ -482,10 +481,11 @@ public class FlyRefreshLayout extends ViewGroup {
         );
 
         final int offDistX = -ACTION_ICON_SIZE/2-ACTION_BUTTON_CENTER;
+        final int offDistY = -UIUtils.dpToPx(10);
         AnimatorSet flyDownAnim = new AnimatorSet();
         flyDownAnim.setDuration(1000);
         ObjectAnimator transX1 = ObjectAnimator.ofFloat(mFlyView, "translationX", getWidth(), offDistX);
-        ObjectAnimator transY1 = ObjectAnimator.ofFloat(mFlyView, "translationY", -mHeaderController.getHeight(), 0);
+        ObjectAnimator transY1 = ObjectAnimator.ofFloat(mFlyView, "translationY", -mHeaderController.getHeight(), offDistY);
         transY1.setInterpolator(PathInterpolatorCompat.create(0.1f, 1f));
         ObjectAnimator rotation1 = ObjectAnimator.ofFloat(mFlyView, "rotation", mFlyView.getRotation(), 0);
         rotation1.setInterpolator(new AccelerateInterpolator());
@@ -495,22 +495,10 @@ public class FlyRefreshLayout extends ViewGroup {
                 rotation1
         );
         flyDownAnim.setStartDelay(400);
-        flyDownAnim.addListener(new Animator.AnimatorListener() {
+        flyDownAnim.addListener(new SimpleAnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
                 mFlyView.setRotationY(180);
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animation) {
-            }
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animation) {
             }
         });
 
@@ -518,15 +506,15 @@ public class FlyRefreshLayout extends ViewGroup {
         flyInAnim.setDuration(500);
         flyInAnim.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator tranX2 = ObjectAnimator.ofFloat(mFlyView, "translationX", offDistX, 0);
+        ObjectAnimator tranY2 = ObjectAnimator.ofFloat(mFlyView, "translationY", offDistY, 0);
         ObjectAnimator rotationX2 = ObjectAnimator.ofFloat(mFlyView, "rotationX", 30, 0);
-        flyInAnim.playTogether(tranX2, rotationX2,
+        flyInAnim.playTogether(tranX2, tranY2, rotationX2,
                 ObjectAnimator.ofFloat(mFlyView, "scaleX", 0.9f, 1f),
                 ObjectAnimator.ofFloat(mFlyView, "scaleY", 0.9f, 1f));
         flyInAnim.setStartDelay(100);
         flyInAnim.addListener(new SimpleAnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
-                super.onAnimationStart(animation);
                 mFlyView.setRotationY(0);
             }
         });

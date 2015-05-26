@@ -66,7 +66,7 @@ public class TreeDrawable extends Drawable {
 
         mBaseLine.reset();
         mBaseLine.moveTo(x0, y0);
-        final int N = 100;
+        final int N = 50;
         final float dp = 1f / N;
         final float dy = -dp * height;
         float y = y0;
