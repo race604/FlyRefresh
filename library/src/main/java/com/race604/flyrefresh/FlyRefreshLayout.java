@@ -150,6 +150,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     protected void onMoveHeader(int state, float progress) {
         super.onMoveHeader(state, progress);
         mSceneDrawable.setMoveFactor(state, progress);
+        mSceneDrawable.invalidateSelf();
         if (mHeaderController.isOverHeight()) {
             getIconView().setRotation((-45) * progress);
         }

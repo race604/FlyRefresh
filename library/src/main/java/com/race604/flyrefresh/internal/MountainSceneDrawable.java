@@ -125,7 +125,7 @@ public class MountainSceneDrawable extends Drawable {
         final float x0 = width / 2;
         final float y0 = height;
 
-        final int N = 50;
+        final int N = 25;
         final float dp = 1f / N;
         final float dy = -dp * height;
         float y = y0;
