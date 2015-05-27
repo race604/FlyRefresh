@@ -13,6 +13,8 @@ import android.support.v4.view.animation.PathInterpolatorCompat;
 import android.util.FloatMath;
 import android.view.animation.Interpolator;
 
+import com.race604.flyrefresh.FlyRefreshLayout;
+
 /**
  * Created by Jing on 15/5/24.
  */
@@ -63,16 +65,16 @@ public class MountSenceDrawable extends Drawable {
         mBoarderPaint.setStrokeWidth(2);
         mBoarderPaint.setStrokeJoin(Paint.Join.ROUND);
 
-        updateMountainPath();
-        updateTreePath();
+        updateMountainPath(mMoveFactor);
+        updateTreePath(mMoveFactor);
     }
 
-    private void updateMountainPath() {
+    private void updateMountainPath(float factor) {
 
         mTransMatrix.reset();
         mTransMatrix.setScale(mScale, mScale);
 
-        int offset1 = (int) (10 * mMoveFactor);
+        int offset1 = (int) (10 * factor);
         mMount1.reset();
         mMount1.moveTo(0, 95 + offset1);
         mMount1.lineTo(55, 74 + offset1);
@@ -84,7 +86,7 @@ public class MountSenceDrawable extends Drawable {
         mMount1.close();
         mMount1.transform(mTransMatrix);
 
-        int offset2 = (int) (20 * mMoveFactor);
+        int offset2 = (int) (20 * factor);
         mMount2.reset();
         mMount2.moveTo(0, 103 + offset2);
         mMount2.lineTo(67, 90 + offset2);
@@ -96,7 +98,7 @@ public class MountSenceDrawable extends Drawable {
         mMount2.close();
         mMount2.transform(mTransMatrix);
 
-        int offset3 = (int) (30 * mMoveFactor);
+        int offset3 = (int) (30 * factor);
         mMount3.reset();
         mMount3.moveTo(0, 114 + offset3);
         mMount3.cubicTo(30, 106 + offset3, 196, 97 + offset3, WIDTH, 104 + offset3);
@@ -106,13 +108,13 @@ public class MountSenceDrawable extends Drawable {
         mMount3.transform(mTransMatrix);
     }
 
-    private void updateTreePath() {
-        final Interpolator interpolator = PathInterpolatorCompat.create(0.8f, -0.5f * mMoveFactor);
+    private void updateTreePath(float factor) {
+        final Interpolator interpolator = PathInterpolatorCompat.create(0.8f, -0.5f * factor);
 
         final float width = TREE_WIDTH;
         final float height = TREE_HEIGHT;
 
-        final float maxMove = width * 0.3f * mMoveFactor;
+        final float maxMove = width * 0.3f * factor;
         final float trunkSize = width * 0.05f;
         final float branchSize = width * 0.2f;
         final float x0 = width / 2;
@@ -172,11 +174,20 @@ public class MountSenceDrawable extends Drawable {
 
     }
 
-    public void setMoveFactor(float factor) {
-        mMoveFactor = factor;
+    private float mBounceMax = 1;
+    public void setMoveFactor(int state, float factor) {
 
-        updateMountainPath();
-        updateTreePath();
+        if (state == FlyRefreshLayout.STATE_BOUNCE) {
+            if (factor < mBounceMax) {
+                mBounceMax = factor;
+            }
+        } else {
+            mBounceMax = factor;
+        }
+
+        mMoveFactor = Math.max(0, mBounceMax);
+        updateMountainPath(mMoveFactor);
+        updateTreePath(factor);
     }
 
     private void drawTree(Canvas canvas, float scale, float baseX, float baseY,
@@ -205,20 +216,23 @@ public class MountSenceDrawable extends Drawable {
         mMountPaint.setColor(COLOR_MOUNTAIN_1);
         canvas.drawPath(mMount1, mMountPaint);
 
-        drawTree(canvas, 0.12f * mScale, 55 * mScale, (95 + 20 * mMoveFactor) * mScale,
+        canvas.save();
+        canvas.scale(-1, 1, getIntrinsicWidth() / 2, 0);
+        drawTree(canvas, 0.12f * mScale, 180 * mScale, (93 + 20 * mMoveFactor) * mScale,
                 COLOR_TREE_3_BTRUNK, COLOR_TREE_3_BRANCH);
-        drawTree(canvas, 0.1f * mScale, 35 * mScale, (100 + 20 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.1f * mScale, 200 * mScale, (96 + 20 * mMoveFactor) * mScale,
                 COLOR_TREE_3_BTRUNK, COLOR_TREE_3_BRANCH);
+        canvas.restore();
         mMountPaint.setColor(COLOR_MOUNTAIN_2);
         canvas.drawPath(mMount2, mMountPaint);
 
-        drawTree(canvas, 0.2f * mScale, 160 * mScale, (110 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.2f * mScale, 160 * mScale, (105 + 30 * mMoveFactor) * mScale,
                 COLOR_TREE_1_BTRUNK, COLOR_TREE_1_BRANCH);
 
-        drawTree(canvas, 0.14f * mScale, 180 * mScale, (110 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.14f * mScale, 180 * mScale, (105 + 30 * mMoveFactor) * mScale,
                 COLOR_TREE_2_BTRUNK ,COLOR_TREE_2_BRANCH);
 
-        drawTree(canvas, 0.16f * mScale, 140 * mScale, (110 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.16f * mScale, 140 * mScale, (105 + 30 * mMoveFactor) * mScale,
                 COLOR_TREE_2_BTRUNK ,COLOR_TREE_2_BRANCH);
 
         mMountPaint.setColor(COLOR_MOUNTAIN_3);

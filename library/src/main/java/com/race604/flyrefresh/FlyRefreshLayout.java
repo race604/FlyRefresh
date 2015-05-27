@@ -34,6 +34,11 @@ public class FlyRefreshLayout extends ViewGroup {
     private static final String TAG = FlyRefreshLayout.class.getCanonicalName();
     private static final boolean D = true;
 
+    public static final int STATE_IDLE = 0;
+    public static final int STATE_DRAGE = 1;
+    public static final int STATE_FLING = 2;
+    public static final int STATE_BOUNCE = 3;
+
     private final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(48);
     private final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
     private final static int DEFAULT_EXPAND = UIUtils.dpToPx(40);
@@ -65,7 +70,7 @@ public class FlyRefreshLayout extends ViewGroup {
     private VelocityTracker mVelocityTracker;
     private ValueAnimator mBounceAnim;
     private int mMaxVelocity;
-    private boolean mIsFlying = false;
+    private int mPullState = STATE_IDLE;
 
     private OnPullListener mPullListener;
 
@@ -398,6 +403,10 @@ public class FlyRefreshLayout extends ViewGroup {
             sendCancelEvent();
         }
 
+        if (mPullState != STATE_DRAGE) {
+            mPullState = STATE_DRAGE;
+        }
+
         movePos(delta);
     }
 
@@ -411,14 +420,15 @@ public class FlyRefreshLayout extends ViewGroup {
 
             mFlyView.offsetTopAndBottom((int) delta);
 
-            if (mHeaderController.isOverHeight()) {
-                float percentage = mHeaderController.getOverPercentage();
-                mFlyView.setRotation((-45) * percentage);
-
-                if (mPullListener != null) {
-                    mPullListener.onPullProgress(percentage);
-                }
+            float percentage = mHeaderController.getMovePercentage();
+            if (mPullListener != null) {
+                mPullListener.onPullProgress(this, mPullState, percentage);
             }
+
+            if (mHeaderController.isOverHeight()) {
+                mFlyView.setRotation((-45) * percentage);
+            }
+
         }
 
     }
@@ -439,11 +449,21 @@ public class FlyRefreshLayout extends ViewGroup {
                     movePos(mHeaderController.moveTo(value));
                 }
             });
+            mBounceAnim.addListener(new SimpleAnimatorListener() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mPullState = STATE_IDLE;
+                }
+            });
+
             mBounceAnim.start();
+            mPullState = STATE_BOUNCE;
 
             if (mHeaderController.needSendRefresh()) {
                 sendFlyAnimation();
             }
+        } else {
+            mPullState = STATE_IDLE;
         }
     }
 
@@ -610,6 +630,9 @@ public class FlyRefreshLayout extends ViewGroup {
         }
 
         public void tryToScrollTo(int velocity) {
+
+            mPullState = STATE_FLING;
+
             mStart = mHeaderController.getCurrentPos();
             removeCallbacks(this);
 
@@ -631,6 +654,6 @@ public class FlyRefreshLayout extends ViewGroup {
     }
 
     public interface OnPullListener {
-        void onPullProgress(float progress);
+        void onPullProgress(FlyRefreshLayout view, int state, float progress);
     }
 }

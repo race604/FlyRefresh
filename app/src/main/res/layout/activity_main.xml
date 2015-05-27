@@ -1,41 +1,46 @@
-<com.race604.flyrefresh.FlyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fly_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    app:frv_header="@+id/header"
-    app:frv_header_expand_height="240dp"
-    app:frv_header_height="160dp"
-    app:frv_header_shrink_height="48dp"
-    app:frv_action="@mipmap/ic_send_white_24dp"
-    tools:context=".MainActivity">
-
-    <FrameLayout
-        android:id="@id/header"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:background="#00BCD4"
-        android:paddingBottom="80dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="@string/hello_world" />
-
-        <ImageView
-            android:id="@+id/tree"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#fff"
-            android:scaleType="center"
-            android:layout_gravity="top|left"/>
-    </FrameLayout>
-
-    <ListView android:id="@+id/list"
+    android:layout_height="match_parent">
+    <com.race604.flyrefresh.FlyRefreshLayout
+        android:id="@+id/fly_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"/>
+        app:frv_header="@+id/header"
+        app:frv_header_expand_height="280dp"
+        app:frv_header_height="240dp"
+        app:frv_header_shrink_height="48dp"
+        app:frv_action="@mipmap/ic_send_white_24dp"
+        tools:context=".MainActivity">
 
-</com.race604.flyrefresh.FlyRefreshLayout>
+        <FrameLayout
+            android:id="@id/header"
+            android:layout_width="match_parent"
+            android:layout_height="280dp">
+
+            <ImageView
+                android:id="@+id/tree"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#fff"
+                android:scaleType="fitXY"
+                android:layout_gravity="top|left"/>
+        </FrameLayout>
+
+        <ListView android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FFFFFF"/>
+
+    </com.race604.flyrefresh.FlyRefreshLayout>
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+</RelativeLayout>

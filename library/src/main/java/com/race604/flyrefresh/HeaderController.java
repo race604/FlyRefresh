@@ -124,14 +124,15 @@ public class HeaderController {
         return mCurrentPos > mHeight;
     }
 
-    public float getOverPercentage() {
-        if (mCurrentPos > mHeight) {
+    public float getMovePercentage() {
+        if (mCurrentPos >= mHeight) {
+            return (mCurrentPos - mHeight) / mOverDistance;
+        } else {
             return (mCurrentPos - mHeight) / mOverDistance;
         }
-        return 0;
     }
 
     public boolean needSendRefresh() {
-        return getOverPercentage() > 0.9;
+        return getMovePercentage() > 0.9f;
     }
 }

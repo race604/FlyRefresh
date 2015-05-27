@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
     }
 
     @Override
-    public void onPullProgress(float progress) {
-        mSenceDrawable.setMoveFactor(progress);
+    public void onPullProgress(FlyRefreshLayout view, int state, float progress) {
+        mSenceDrawable.setMoveFactor(state, progress);
         mSenceDrawable.invalidateSelf();
     }
 }
