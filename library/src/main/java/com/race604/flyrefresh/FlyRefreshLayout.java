@@ -384,14 +384,8 @@ public class FlyRefreshLayout extends ViewGroup {
         return super.dispatchTouchEvent(ev);
     }
 
-    /**
-     * if deltaY > 0, move the content down
-     *
-     * @param deltaY
-     */
     private void willMovePos(float deltaY) {
 
-        // has reached the top
         int delta = mHeaderController.willMove(deltaY);
         //Log.d(TAG, String.format("willMovePos deltaY = %s, delta = %d", deltaY, delta));
 
@@ -488,7 +482,7 @@ public class FlyRefreshLayout extends ViewGroup {
 
         ObjectAnimator transX = ObjectAnimator.ofFloat(mFlyView, "translationX", 0, getWidth());
         ObjectAnimator transY = ObjectAnimator.ofFloat(mFlyView, "translationY", 0, -mHeaderController.getHeight());
-        transY.setInterpolator(PathInterpolatorCompat.create(0.1f, 0.9f));
+        transY.setInterpolator(PathInterpolatorCompat.create(0.4f, 1f));
         ObjectAnimator rotation = ObjectAnimator.ofFloat(mFlyView, "rotation", -45, 0);
         rotation.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator rotationX = ObjectAnimator.ofFloat(mFlyView, "rotationX", 0, 60);

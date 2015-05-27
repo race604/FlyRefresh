@@ -18,7 +18,7 @@ import com.race604.flyrefresh.FlyRefreshLayout;
 /**
  * Created by Jing on 15/5/24.
  */
-public class MountSenceDrawable extends Drawable {
+public class MountainSceneDrawable extends Drawable {
 
     private static final int COLOR_BACKGROUND = Color.argb(255, 126, 206, 201);
     private static final int COLOR_MOUNTAIN_1 = Color.argb(255, 134, 218, 215);
@@ -50,9 +50,11 @@ public class MountSenceDrawable extends Drawable {
 
     private float mScale = 5f;
     private float mMoveFactor = 0;
+    private float mBounceMax = 1;
+    private float mTreeBendFactor = Float.MAX_VALUE;
     private Matrix mTransMatrix = new Matrix();
 
-    public MountSenceDrawable() {
+    public MountainSceneDrawable() {
         super();
 
         mMountPaint.setAntiAlias(true);
@@ -66,7 +68,7 @@ public class MountSenceDrawable extends Drawable {
         mBoarderPaint.setStrokeJoin(Paint.Join.ROUND);
 
         updateMountainPath(mMoveFactor);
-        updateTreePath(mMoveFactor);
+        updateTreePath(0);
     }
 
     private void updateMountainPath(float factor) {
@@ -109,6 +111,10 @@ public class MountSenceDrawable extends Drawable {
     }
 
     private void updateTreePath(float factor) {
+        if (factor == mTreeBendFactor) {
+            return;
+        }
+
         final Interpolator interpolator = PathInterpolatorCompat.create(0.8f, -0.5f * factor);
 
         final float width = TREE_WIDTH;
@@ -174,20 +180,22 @@ public class MountSenceDrawable extends Drawable {
 
     }
 
-    private float mBounceMax = 1;
     public void setMoveFactor(int state, float factor) {
 
+        float bendFactor;
         if (state == FlyRefreshLayout.STATE_BOUNCE) {
             if (factor < mBounceMax) {
                 mBounceMax = factor;
             }
+            bendFactor = factor;
         } else {
             mBounceMax = factor;
+            bendFactor = Math.max(0, factor);
         }
 
         mMoveFactor = Math.max(0, mBounceMax);
         updateMountainPath(mMoveFactor);
-        updateTreePath(factor);
+        updateTreePath(bendFactor);
     }
 
     private void drawTree(Canvas canvas, float scale, float baseX, float baseY,

@@ -2,6 +2,7 @@ package com.race604.flyrefresh.sample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
@@ -9,8 +10,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 
 import com.race604.flyrefresh.FlyRefreshLayout;
-import com.race604.flyrefresh.internal.MountSenceDrawable;
-import com.race604.flyrefresh.internal.TreeDrawable;
+import com.race604.flyrefresh.internal.MountainSceneDrawable;
 
 public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.OnPullListener {
 
@@ -21,18 +21,22 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
             "Nine", "Ten"};
 
     private ArrayAdapter<String> mAdapter;
-    private MountSenceDrawable mSenceDrawable;
+    private MountainSceneDrawable mSceneDrawable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSenceDrawable = new MountSenceDrawable();
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        mSceneDrawable = new MountainSceneDrawable();
         mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
 
         ImageView tree = (ImageView) mFlylayout.findViewById(R.id.tree);
-        tree.setImageDrawable(mSenceDrawable);
+        tree.setImageDrawable(mSceneDrawable);
 
         mFlylayout.setOnPullListener(this);
 
@@ -68,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
 
     @Override
     public void onPullProgress(FlyRefreshLayout view, int state, float progress) {
-        mSenceDrawable.setMoveFactor(state, progress);
-        mSenceDrawable.invalidateSelf();
+        mSceneDrawable.setMoveFactor(state, progress);
+        mSceneDrawable.invalidateSelf();
     }
 }
