@@ -10,9 +10,9 @@ import android.widget.ImageView;
 import android.widget.ListView;
 
 import com.race604.flyrefresh.FlyRefreshLayout;
-import com.race604.flyrefresh.internal.MountainSceneDrawable;
+import com.race604.flyrefresh.PullHeaderLayout;
 
-public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.OnPullListener {
+public class MainActivity extends AppCompatActivity implements PullHeaderLayout.OnPullListener {
 
     private FlyRefreshLayout mFlylayout;
     private ListView mListView;
@@ -21,7 +21,6 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
             "Nine", "Ten"};
 
     private ArrayAdapter<String> mAdapter;
-    private MountainSceneDrawable mSceneDrawable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,11 +31,7 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        mSceneDrawable = new MountainSceneDrawable();
         mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
-
-        ImageView tree = (ImageView) mFlylayout.findViewById(R.id.tree);
-        tree.setImageDrawable(mSceneDrawable);
 
         mFlylayout.setOnPullListener(this);
 
@@ -71,8 +66,12 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
     }
 
     @Override
-    public void onPullProgress(FlyRefreshLayout view, int state, float progress) {
-        mSceneDrawable.setMoveFactor(state, progress);
-        mSceneDrawable.invalidateSelf();
+    public void onStartRefresh(PullHeaderLayout view) {
+
+    }
+
+    @Override
+    public void onPullProgress(PullHeaderLayout view, int state, float progress) {
+
     }
 }

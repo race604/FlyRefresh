@@ -10,10 +10,9 @@ import android.graphics.PixelFormat;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.v4.view.animation.PathInterpolatorCompat;
-import android.util.FloatMath;
 import android.view.animation.Interpolator;
 
-import com.race604.flyrefresh.FlyRefreshLayout;
+import com.race604.flyrefresh.PullHeaderLayout;
 
 /**
  * Created by Jing on 15/5/24.
@@ -183,7 +182,7 @@ public class MountainSceneDrawable extends Drawable {
     public void setMoveFactor(int state, float factor) {
 
         float bendFactor;
-        if (state == FlyRefreshLayout.STATE_BOUNCE) {
+        if (state == PullHeaderLayout.STATE_BOUNCE) {
             if (factor < mBounceMax) {
                 mBounceMax = factor;
             }

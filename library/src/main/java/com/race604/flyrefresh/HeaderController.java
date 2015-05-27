@@ -25,6 +25,10 @@ public class HeaderController {
             throw new IllegalArgumentException("maxHeight must > 0");
         }
 
+        setSize(height, maxHeight, minHeight);
+    }
+
+    public void setSize(int height, int maxHeight, int minHeight) {
         mHeight = Math.max(0, height);
         mMaxHegiht = Math.max(0, maxHeight);
         mMinHegiht = Math.max(0, minHeight);
