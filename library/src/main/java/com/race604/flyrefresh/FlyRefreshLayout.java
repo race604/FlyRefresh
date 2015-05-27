@@ -22,6 +22,7 @@ import com.race604.utils.UIUtils;
 public class FlyRefreshLayout extends PullHeaderLayout {
 
     private MountainSceneDrawable mSceneDrawable;
+    private AnimatorSet mFlyAnimator = null;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -82,15 +83,19 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     @Override
     protected void onStartRefreshAnimation() {
 
+        if (mFlyAnimator != null) {
+            mFlyAnimator.end();
+        }
+
         final View iconView = getIconView();
         resetViewAnimation(iconView);
 
         AnimatorSet flyUpAnim = new AnimatorSet();
-        flyUpAnim.setDuration(1000);
+        flyUpAnim.setDuration(800);
 
         ObjectAnimator transX = ObjectAnimator.ofFloat(iconView, "translationX", 0, getWidth());
         ObjectAnimator transY = ObjectAnimator.ofFloat(iconView, "translationY", 0, -mHeaderController.getHeight());
-        transY.setInterpolator(PathInterpolatorCompat.create(0.4f, 1f));
+        transY.setInterpolator(PathInterpolatorCompat.create(0.7f, 1f));
         ObjectAnimator rotation = ObjectAnimator.ofFloat(iconView, "rotation", -45, 0);
         rotation.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator rotationX = ObjectAnimator.ofFloat(iconView, "rotationX", 0, 60);
@@ -102,7 +107,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
                 rotation
         );
 
-        final int offDistX = -ACTION_ICON_SIZE / 2 - ACTION_BUTTON_CENTER;
+        final int offDistX = -iconView.getRight();
         final int offDistY = -UIUtils.dpToPx(10);
         AnimatorSet flyDownAnim = new AnimatorSet();
         flyDownAnim.setDuration(1000);
@@ -141,9 +146,9 @@ public class FlyRefreshLayout extends PullHeaderLayout {
             }
         });
 
-        AnimatorSet flyAnim = new AnimatorSet();
-        flyAnim.playSequentially(flyUpAnim, flyDownAnim, flyInAnim);
-        flyAnim.start();
+        mFlyAnimator = new AnimatorSet();
+        mFlyAnimator.playSequentially(flyUpAnim, flyDownAnim, flyInAnim);
+        mFlyAnimator.start();
     }
 
     @Override

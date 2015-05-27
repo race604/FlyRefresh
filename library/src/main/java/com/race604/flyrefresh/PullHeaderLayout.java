@@ -240,7 +240,7 @@ public class PullHeaderLayout extends ViewGroup {
         }
 
         if (mContent != null) {
-            measureChildWithMargins(mContent, widthMeasureSpec, 0, heightMeasureSpec, mHeaderController.getHeight());
+            measureChildWithMargins(mContent, widthMeasureSpec, 0, heightMeasureSpec, mHeaderController.getMinHeight());
         }
 
         if (mActionView != null) {
