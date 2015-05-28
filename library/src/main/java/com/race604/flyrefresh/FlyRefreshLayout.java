@@ -10,9 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.ImageView;
 
-import com.race604.flyrefresh.internal.MountainSceneDrawable;
 import com.race604.flyrefresh.internal.MountanScenceView;
 import com.race604.flyrefresh.internal.SimpleAnimatorListener;
 import com.race604.utils.UIUtils;
@@ -46,8 +44,6 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     }
 
     private void init(Context context) {
-        int maxHeight = UIUtils.dpToPx(300);
-        setHeaderSize((int) (maxHeight * 0.8f), maxHeight, UIUtils.dpToPx(48));
         MountanScenceView headerView = new MountanScenceView(getContext());
         LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mHeaderController.getMaxHeight());
         setHeaderView(headerView, lp);
@@ -56,7 +52,11 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        setActionDrawable(getResources().getDrawable(R.mipmap.ic_send));
+
+        // Set default action icon if user not override
+        if (getIconView() == null) {
+            setActionDrawable(getResources().getDrawable(R.mipmap.ic_send));
+        }
     }
 
     @Override

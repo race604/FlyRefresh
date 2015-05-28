@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
 
     private ArrayList<ItemData> mDataSet = new ArrayList<>();
     private Handler mHandler = new Handler();
+    private LinearLayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +57,8 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
 
         mListView = (RecyclerView) findViewById(R.id.list);
 
-        mListView.setLayoutManager(new LinearLayoutManager(this));
+        mLayoutManager = new LinearLayoutManager(this);
+        mListView.setLayoutManager(mLayoutManager);
         mAdapter = new ItemAdapter(this);
 
         mListView.setAdapter(mAdapter);
@@ -74,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.
         ItemData itemData = new ItemData(Color.parseColor("#FFC970"), R.mipmap.ic_smartphone_white_24dp, "Magic Cube Show", new Date());
         mDataSet.add(0, itemData);
         mAdapter.notifyItemInserted(0);
+        mLayoutManager.scrollToPosition(0);
     }
 
     @Override

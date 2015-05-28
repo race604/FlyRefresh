@@ -37,8 +37,9 @@ public class PullHeaderLayout extends ViewGroup {
 
     final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(40);
     final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
-    private final static int DEFAULT_EXPAND = UIUtils.dpToPx(40);
-    private final static int DEFAULT_HEIGHT = 0;
+    private final static int DEFAULT_EXPAND = UIUtils.dpToPx(300);
+    private final static int DEFAULT_HEIGHT = UIUtils.dpToPx(240);
+    private final static int DEFAULT_SHRINK = UIUtils.dpToPx(48);
 
     private int mHeaderId = 0;
     private int mContentId = 0;
@@ -92,7 +93,7 @@ public class PullHeaderLayout extends ViewGroup {
     private void init(Context context, AttributeSet attrs) {
         int headerHeight = DEFAULT_HEIGHT;
         int headerExpandHeight = DEFAULT_EXPAND;
-        int headerShrinkHeight = DEFAULT_HEIGHT;
+        int headerShrinkHeight = DEFAULT_SHRINK;
 
         if (attrs != null) {
             TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.PullHeaderLayout);
@@ -101,7 +102,7 @@ public class PullHeaderLayout extends ViewGroup {
             headerExpandHeight = arr.getDimensionPixelOffset(R.styleable.PullHeaderLayout_phl_header_expand_height,
                     DEFAULT_EXPAND);
             headerShrinkHeight = arr.getDimensionPixelOffset(R.styleable.PullHeaderLayout_phl_header_shrink_height,
-                    DEFAULT_HEIGHT);
+                    DEFAULT_SHRINK);
 
             mHeaderId = arr.getResourceId(R.styleable.PullHeaderLayout_phl_header, mHeaderId);
             mContentId = arr.getResourceId(R.styleable.PullHeaderLayout_phl_content, mContentId);
