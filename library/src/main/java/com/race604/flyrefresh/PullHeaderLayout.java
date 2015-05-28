@@ -488,9 +488,6 @@ public class PullHeaderLayout extends ViewGroup {
 
             if (mHeaderController.needSendRefresh()) {
                 onStartRefreshAnimation();
-                if (mPullListener != null) {
-                    mPullListener.onStartRefresh(this);
-                }
             }
         } else {
             mPullState = STATE_IDLE;
@@ -609,7 +606,6 @@ public class PullHeaderLayout extends ViewGroup {
     }
 
     public interface OnPullListener {
-        void onStartRefresh(PullHeaderLayout view);
         void onPullProgress(PullHeaderLayout view, int state, float progress);
     }
 }

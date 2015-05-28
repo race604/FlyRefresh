@@ -24,4 +24,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:22.1.1'
     compile project(':library')
     compile 'com.android.support:recyclerview-v7:22.1.1'
+    compile 'jp.wasabeef:recyclerview-animators:1.2.0@aar'
 }

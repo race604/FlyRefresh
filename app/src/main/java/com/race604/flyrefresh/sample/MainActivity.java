@@ -19,12 +19,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
-import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.race604.flyrefresh.FlyRefreshLayout;
-import com.race604.flyrefresh.PullHeaderLayout;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -32,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements PullHeaderLayout.OnPullListener {
+public class MainActivity extends AppCompatActivity implements FlyRefreshLayout.OnPullRefreshListener {
 
     private FlyRefreshLayout mFlylayout;
     private RecyclerView mListView;
@@ -54,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
 
         mFlylayout = (FlyRefreshLayout) findViewById(R.id.fly_layout);
 
-        mFlylayout.setOnPullListener(this);
+        mFlylayout.setOnPullRefreshListener(this);
 
         mListView = (RecyclerView) findViewById(R.id.list);
 
@@ -96,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
     }
 
     @Override
-    public void onStartRefresh(PullHeaderLayout view) {
+    public void onRefresh(FlyRefreshLayout view) {
         View child = mListView.getChildAt(0);
         if (child != null) {
             bounceAnimateView(child.findViewById(R.id.icon));
@@ -105,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                addItemData();
+                mFlylayout.onRefreshFinish();
             }
         }, 2000);
     }
@@ -115,15 +113,15 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
             return;
         }
 
-        Animator swing = ObjectAnimator.ofFloat(view, "rotationX", 0, 20, 0);
+        Animator swing = ObjectAnimator.ofFloat(view, "rotationX", 0, 30, -20, 0);
         swing.setDuration(400);
         swing.setInterpolator(new AccelerateInterpolator());
         swing.start();
     }
 
     @Override
-    public void onPullProgress(PullHeaderLayout view, int state, float progress) {
-
+    public void onRefreshAnimationEnd(FlyRefreshLayout view) {
+        addItemData();
     }
 
     private class ItemAdapter extends RecyclerView.Adapter<ItemViewHolder> {

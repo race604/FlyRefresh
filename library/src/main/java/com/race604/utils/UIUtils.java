@@ -3,7 +3,9 @@ package com.race604.utils;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.support.v4.view.ViewCompat;
 import android.util.TypedValue;
+import android.view.View;
 
 /**
  * Created by Jing on 15/5/18.
@@ -55,5 +57,21 @@ public class UIUtils {
             color = ctx.getResources().getColor(res);
         }
         return color;
+    }
+
+    public static void clearAnimator(View v) {
+        ViewCompat.setAlpha(v, 1);
+        ViewCompat.setScaleY(v, 1);
+        ViewCompat.setScaleX(v, 1);
+        ViewCompat.setTranslationY(v, 0);
+        ViewCompat.setTranslationX(v, 0);
+        ViewCompat.setRotation(v, 0);
+        ViewCompat.setRotationY(v, 0);
+        ViewCompat.setRotationX(v, 0);
+        // @TODO https://code.google.com/p/android/issues/detail?id=80863
+        // ViewCompat.setPivotY(v, v.getMeasuredHeight() / 2);
+        v.setPivotY(v.getMeasuredHeight() / 2);
+        ViewCompat.setPivotX(v, v.getMeasuredWidth() / 2);
+        ViewCompat.animate(v).setInterpolator(null);
     }
 }

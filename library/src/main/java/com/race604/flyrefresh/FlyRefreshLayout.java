@@ -23,6 +23,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
 
     private MountainSceneDrawable mSceneDrawable;
     private AnimatorSet mFlyAnimator = null;
+    private OnPullRefreshListener mListener;
 
     public FlyRefreshLayout(Context context) {
         super(context);
@@ -68,18 +69,6 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
-    private void resetViewAnimation(View view) {
-        view.clearAnimation();
-        view.clearAnimation();
-        view.setTranslationX(0);
-        view.setTranslationY(0);
-        view.setScaleX(1f);
-        view.setScaleY(1f);
-        view.setRotation(0);
-        view.setRotationX(0);
-        view.setRotationY(0);
-    }
-
     @Override
     protected void onStartRefreshAnimation() {
 
@@ -88,7 +77,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         }
 
         final View iconView = getIconView();
-        resetViewAnimation(iconView);
+        UIUtils.clearAnimator(iconView);
 
         AnimatorSet flyUpAnim = new AnimatorSet();
         flyUpAnim.setDuration(800);
@@ -107,10 +96,30 @@ public class FlyRefreshLayout extends PullHeaderLayout {
                 rotation
         );
 
+        mFlyAnimator = flyUpAnim;
+        mFlyAnimator.start();
+
+        if (mListener != null) {
+            mListener.onRefresh(FlyRefreshLayout.this);
+        }
+    }
+
+    public void setOnPullRefreshListener(OnPullRefreshListener listener) {
+        mListener = listener;
+    }
+
+    public void onRefreshFinish() {
+        if (mFlyAnimator != null) {
+            mFlyAnimator.cancel();
+        }
+
+        final View iconView = getIconView();
+        UIUtils.clearAnimator(iconView);
+
         final int offDistX = -iconView.getRight();
         final int offDistY = -UIUtils.dpToPx(10);
         AnimatorSet flyDownAnim = new AnimatorSet();
-        flyDownAnim.setDuration(1000);
+        flyDownAnim.setDuration(800);
         ObjectAnimator transX1 = ObjectAnimator.ofFloat(iconView, "translationX", getWidth(), offDistX);
         ObjectAnimator transY1 = ObjectAnimator.ofFloat(iconView, "translationY", -mHeaderController.getHeight(), offDistY);
         transY1.setInterpolator(PathInterpolatorCompat.create(0.1f, 1f));
@@ -121,7 +130,6 @@ public class FlyRefreshLayout extends PullHeaderLayout {
                 ObjectAnimator.ofFloat(iconView, "scaleY", 0.5f, 0.9f),
                 rotation1
         );
-        flyDownAnim.setStartDelay(400);
         flyDownAnim.addListener(new SimpleAnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -130,7 +138,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         });
 
         AnimatorSet flyInAnim = new AnimatorSet();
-        flyInAnim.setDuration(500);
+        flyInAnim.setDuration(400);
         flyInAnim.setInterpolator(new DecelerateInterpolator());
         ObjectAnimator tranX2 = ObjectAnimator.ofFloat(iconView, "translationX", offDistX, 0);
         ObjectAnimator tranY2 = ObjectAnimator.ofFloat(iconView, "translationY", offDistY, 0);
@@ -147,7 +155,15 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         });
 
         mFlyAnimator = new AnimatorSet();
-        mFlyAnimator.playSequentially(flyUpAnim, flyDownAnim, flyInAnim);
+        mFlyAnimator.playSequentially(flyDownAnim, flyInAnim);
+        mFlyAnimator.addListener(new SimpleAnimatorListener() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (mListener != null) {
+                    mListener.onRefreshAnimationEnd(FlyRefreshLayout.this);
+                }
+            }
+        });
         mFlyAnimator.start();
     }
 
@@ -159,5 +175,10 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         if (mHeaderController.isOverHeight()) {
             getIconView().setRotation((-45) * progress);
         }
+    }
+
+    public interface OnPullRefreshListener {
+        void onRefresh(FlyRefreshLayout view);
+        void onRefreshAnimationEnd(FlyRefreshLayout view);
     }
 }

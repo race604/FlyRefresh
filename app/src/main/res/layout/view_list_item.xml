@@ -4,44 +4,50 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingTop="4dp"
     android:paddingBottom="4dp"
     android:paddingLeft="16dp"
-    android:paddingRight="16dp">
+    android:paddingRight="16dp"
+    android:paddingTop="4dp">
 
     <ImageView
         android:id="@+id/icon"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:scaleType="centerInside"
-        android:layout_margin="4dp"/>
+        android:layout_margin="4dp"
+        android:scaleType="centerInside" />
 
-    <LinearLayout
+    <RelativeLayout
+        android:id="@+id/right"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_margin="4dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_margin="4dp">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:textAppearance="?attr/titleTextAppearance" />
+            android:textAppearance="?attr/titleTextAppearance"
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
+            android:layout_below="@id/title"
             android:layout_marginTop="4dp"
-            android:textAppearance="?attr/subtitleTextAppearance" />
-    </LinearLayout>
+            android:textColor="#888888"
+            android:textSize="16sp" />
 
-    <ImageView
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:scaleType="centerInside"
-        android:src="@mipmap/ic_info_grey600_18dp" />
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:scaleType="centerInside"
+            android:src="@mipmap/ic_info_grey600_18dp" />
+    </RelativeLayout>
+
+
 </LinearLayout>
