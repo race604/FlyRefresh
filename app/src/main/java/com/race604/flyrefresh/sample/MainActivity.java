@@ -1,10 +1,14 @@
 package com.race604.flyrefresh.sample;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -14,6 +18,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -24,6 +30,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements PullHeaderLayout.OnPullListener {
 
@@ -33,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
     private ItemAdapter mAdapter;
 
     private ArrayList<ItemData> mDataSet = new ArrayList<>();
+    private Handler mHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,12 +62,20 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
         mAdapter = new ItemAdapter(this);
 
         mListView.setAdapter(mAdapter);
+
+        mListView.setItemAnimator(new SampleItemAnimator());
     }
 
     private void initDataSet() {
         mDataSet.add(new ItemData(Color.parseColor("#76A9FC"), R.mipmap.ic_assessment_white_24dp, "Meeting Minutes", new Date(2014 - 1900, 2, 9)));
         mDataSet.add(new ItemData(Color.GRAY, R.mipmap.ic_folder_white_24dp, "Favorites Photos", new Date(2014 - 1900, 1, 3)));
         mDataSet.add(new ItemData(Color.GRAY, R.mipmap.ic_folder_white_24dp, "Photos", new Date(2014 - 1900, 0, 9)));
+    }
+
+    private void addItemData() {
+        ItemData itemData = new ItemData(Color.parseColor("#FFC970"), R.mipmap.ic_smartphone_white_24dp, "Magic Cube Show", new Date());
+        mDataSet.add(0, itemData);
+        mAdapter.notifyItemInserted(0);
     }
 
     @Override
@@ -81,7 +97,28 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
 
     @Override
     public void onStartRefresh(PullHeaderLayout view) {
+        View child = mListView.getChildAt(0);
+        if (child != null) {
+            bounceAnimateView(child.findViewById(R.id.icon));
+        }
 
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                addItemData();
+            }
+        }, 2000);
+    }
+
+    private void bounceAnimateView(View view) {
+        if (view == null) {
+            return;
+        }
+
+        Animator swing = ObjectAnimator.ofFloat(view, "rotationX", 0, 20, 0);
+        swing.setDuration(400);
+        swing.setInterpolator(new AccelerateInterpolator());
+        swing.start();
     }
 
     @Override
@@ -96,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements PullHeaderLayout.
 
         public ItemAdapter(Context context) {
             mInflater = LayoutInflater.from(context);
-            dateFormat = SimpleDateFormat.getDateInstance();
+            dateFormat = SimpleDateFormat.getDateInstance(DateFormat.DEFAULT, Locale.ENGLISH);
         }
 
         @Override

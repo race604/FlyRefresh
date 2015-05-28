@@ -39,7 +39,7 @@ public class PullHeaderLayout extends ViewGroup {
     public static final int STATE_FLING = 2;
     public static final int STATE_BOUNCE = 3;
 
-    final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(48);
+    final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(40);
     final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
     private final static int DEFAULT_EXPAND = UIUtils.dpToPx(40);
     private final static int DEFAULT_HEIGHT = 0;
@@ -154,8 +154,7 @@ public class PullHeaderLayout extends ViewGroup {
             if (mFlyView == null) {
                 mFlyView = new ImageView(getContext());
                 mFlyView.setScaleType(ImageView.ScaleType.FIT_XY);
-                final int iconSize = UIUtils.dpToPx(32);
-                addView(mFlyView, new LayoutParams(iconSize, iconSize));
+                addView(mFlyView, new LayoutParams(ACTION_ICON_SIZE, ACTION_ICON_SIZE));
             }
             mFlyView.setImageDrawable(mActionDrawable);
         } else {
