@@ -1,9 +1,9 @@
 #FlyRefresh
-The Android implementation of [Replace](https://dribbble.com/shots/2067564-Replace), designed by [@Zee Youn](https://dribbble.com/zeeyoung).
+The Android implementation of [Replace](https://dribbble.com/shots/2067564-Replace), designed by [Zee Youn](https://dribbble.com/zeeyoung).
 I implement this as a **FlyRefresh** layout. The content of the layout can be any view, such as ListView, RecyclerView, ScrollView, etc.
 
 #How it looks
-[!Replace](./flyrefresh.gif)
+[!Replace](./images/flyrefresh.gif)
 
 #Features
 * Default minimize configuration for [Replace](https://dribbble.com/shots/2067564-Replace) animation
