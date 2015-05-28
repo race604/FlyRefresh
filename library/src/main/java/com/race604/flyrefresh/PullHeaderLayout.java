@@ -1,7 +1,6 @@
 package com.race604.flyrefresh;
 
 import android.animation.Animator;
-import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
@@ -9,15 +8,12 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.support.v4.view.animation.PathInterpolatorCompat;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.Scroller;
 
@@ -59,6 +55,7 @@ public class PullHeaderLayout extends ViewGroup {
     private FloatingActionButton mActionView;
     private ImageView mFlyView;
     private View mHeaderView;
+    private IPullHeader mPullHeaderView;
     protected View mContent;
     protected HeaderController mHeaderController;
     private IScrollHandler mScrollHandler;
@@ -174,10 +171,15 @@ public class PullHeaderLayout extends ViewGroup {
     public void setHeaderView(View headerView, LayoutParams lp) {
         if (mHeaderView != null) {
             removeView(mHeaderView);
+            mPullHeaderView = null;
         }
 
         addView(headerView, 0, lp);
         mHeaderView = headerView;
+
+        if (mHeaderView instanceof IPullHeader) {
+            mPullHeaderView = (IPullHeader) mHeaderView;
+        }
     }
 
     @Override
@@ -199,12 +201,14 @@ public class PullHeaderLayout extends ViewGroup {
 
                 View child1 = getChildAt(0);
                 View child2 = getChildAt(1);
-                if (child1 instanceof IFlyPullable) {
+                if (child1 instanceof IPullHeader) {
                     mHeaderView = child1;
                     mContent = child2;
-                } else if (child2 instanceof IFlyPullable) {
+                    mPullHeaderView = (IPullHeader) mHeaderView;
+                } else if (child2 instanceof IPullHeader) {
                     mHeaderView = child2;
                     mContent = child1;
+                    mPullHeaderView = (IPullHeader) mHeaderView;
                 } else {
                     // both are not specified
                     if (mContent == null && mHeaderView == null) {
@@ -452,6 +456,11 @@ public class PullHeaderLayout extends ViewGroup {
 
             float percentage = mHeaderController.getMovePercentage();
             onMoveHeader(mPullState, percentage);
+
+            if (mPullHeaderView != null) {
+                mPullHeaderView.onPullProgress(this, mPullState, percentage);
+            }
+
             if (mPullListener != null) {
                 mPullListener.onPullProgress(this, mPullState, percentage);
             }

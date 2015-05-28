@@ -1,23 +1,26 @@
 package com.race604.flyrefresh.internal;
 
+import android.annotation.TargetApi;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PixelFormat;
 import android.graphics.RectF;
-import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.v4.view.animation.PathInterpolatorCompat;
+import android.util.AttributeSet;
+import android.view.View;
 import android.view.animation.Interpolator;
 
+import com.race604.flyrefresh.IPullHeader;
 import com.race604.flyrefresh.PullHeaderLayout;
 
 /**
- * Created by Jing on 15/5/24.
+ * Created by jing on 15-5-28.
  */
-public class MountainSceneDrawable extends Drawable {
+public class MountanScenceView extends View implements IPullHeader {
 
     private static final int COLOR_BACKGROUND = Color.parseColor("#7ECEC9");
     private static final int COLOR_MOUNTAIN_1 = Color.parseColor("#86DAD7");
@@ -47,15 +50,47 @@ public class MountainSceneDrawable extends Drawable {
     private Path mTrunk = new Path();
     private Path mBranch = new Path();
 
-    private float mScale = 5f;
+    private float mScaleX = 5f;
+    private float mScaleY = 5f;
     private float mMoveFactor = 0;
     private float mBounceMax = 1;
     private float mTreeBendFactor = Float.MAX_VALUE;
     private Matrix mTransMatrix = new Matrix();
 
-    public MountainSceneDrawable() {
-        super();
+    public MountanScenceView(Context context) {
+        super(context);
+        init();
+    }
 
+    public MountanScenceView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init();
+    }
+
+    public MountanScenceView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public MountanScenceView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        init();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        final float width = getMeasuredWidth();
+        final float height = getMeasuredHeight();
+        mScaleX = width / WIDTH;
+        mScaleY = height / HEIGHT;
+
+        updateMountainPath(mMoveFactor);
+        updateTreePath(mMoveFactor, true);
+    }
+
+    private void init() {
         mMountPaint.setAntiAlias(true);
         mMountPaint.setStyle(Paint.Style.FILL);
 
@@ -67,13 +102,13 @@ public class MountainSceneDrawable extends Drawable {
         mBoarderPaint.setStrokeJoin(Paint.Join.ROUND);
 
         updateMountainPath(mMoveFactor);
-        updateTreePath(0);
+        updateTreePath(mMoveFactor, true);
     }
 
     private void updateMountainPath(float factor) {
 
         mTransMatrix.reset();
-        mTransMatrix.setScale(mScale, mScale);
+        mTransMatrix.setScale(mScaleX, mScaleY);
 
         int offset1 = (int) (10 * factor);
         mMount1.reset();
@@ -109,8 +144,8 @@ public class MountainSceneDrawable extends Drawable {
         mMount3.transform(mTransMatrix);
     }
 
-    private void updateTreePath(float factor) {
-        if (factor == mTreeBendFactor) {
+    private void updateTreePath(float factor, boolean force) {
+        if (factor == mTreeBendFactor && !force) {
             return;
         }
 
@@ -179,7 +214,8 @@ public class MountainSceneDrawable extends Drawable {
 
     }
 
-    public void setMoveFactor(int state, float factor) {
+    @Override
+    public void onPullProgress(PullHeaderLayout parent, int state, float factor) {
 
         float bendFactor;
         if (state == PullHeaderLayout.STATE_BOUNCE) {
@@ -194,7 +230,9 @@ public class MountainSceneDrawable extends Drawable {
 
         mMoveFactor = Math.max(0, mBounceMax);
         updateMountainPath(mMoveFactor);
-        updateTreePath(bendFactor);
+        updateTreePath(bendFactor, false);
+
+        postInvalidate();
     }
 
     private void drawTree(Canvas canvas, float scale, float baseX, float baseY,
@@ -217,64 +255,33 @@ public class MountainSceneDrawable extends Drawable {
     }
 
     @Override
-    public void draw(Canvas canvas) {
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
         canvas.drawColor(COLOR_BACKGROUND);
 
         mMountPaint.setColor(COLOR_MOUNTAIN_1);
         canvas.drawPath(mMount1, mMountPaint);
 
         canvas.save();
-        canvas.scale(-1, 1, getIntrinsicWidth() / 2, 0);
-        drawTree(canvas, 0.12f * mScale, 180 * mScale, (93 + 20 * mMoveFactor) * mScale,
+        canvas.scale(-1, 1, getWidth() / 2, 0);
+        drawTree(canvas, 0.12f * mScaleX, 180 * mScaleX, (93 + 20 * mMoveFactor) * mScaleY,
                 COLOR_TREE_3_BTRUNK, COLOR_TREE_3_BRANCH);
-        drawTree(canvas, 0.1f * mScale, 200 * mScale, (96 + 20 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.1f * mScaleX, 200 * mScaleX, (96 + 20 * mMoveFactor) * mScaleY,
                 COLOR_TREE_3_BTRUNK, COLOR_TREE_3_BRANCH);
         canvas.restore();
         mMountPaint.setColor(COLOR_MOUNTAIN_2);
         canvas.drawPath(mMount2, mMountPaint);
 
-        drawTree(canvas, 0.2f * mScale, 160 * mScale, (105 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.2f * mScaleX, 160 * mScaleX, (105 + 30 * mMoveFactor) * mScaleY,
                 COLOR_TREE_1_BTRUNK, COLOR_TREE_1_BRANCH);
 
-        drawTree(canvas, 0.14f * mScale, 180 * mScale, (105 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.14f * mScaleX, 180 * mScaleX, (105 + 30 * mMoveFactor) * mScaleY,
                 COLOR_TREE_2_BTRUNK ,COLOR_TREE_2_BRANCH);
 
-        drawTree(canvas, 0.16f * mScale, 140 * mScale, (105 + 30 * mMoveFactor) * mScale,
+        drawTree(canvas, 0.16f * mScaleX, 140 * mScaleX, (105 + 30 * mMoveFactor) * mScaleY,
                 COLOR_TREE_2_BTRUNK ,COLOR_TREE_2_BRANCH);
 
         mMountPaint.setColor(COLOR_MOUNTAIN_3);
         canvas.drawPath(mMount3, mMountPaint);
-
-    }
-
-    @Override
-    public void setAlpha(int alpha) {
-        mMountPaint.setAlpha(alpha);
-        mTrunkPaint.setAlpha(alpha);
-        mBranchPaint.setAlpha(alpha);
-        mBoarderPaint.setAlpha(alpha);
-    }
-
-    @Override
-    public void setColorFilter(ColorFilter cf) {
-        mMountPaint.setColorFilter(cf);
-        mTrunkPaint.setColorFilter(cf);
-        mBranchPaint.setColorFilter(cf);
-        mBoarderPaint.setColorFilter(cf);
-    }
-
-    @Override
-    public int getOpacity() {
-        return PixelFormat.OPAQUE;
-    }
-
-    @Override
-    public int getIntrinsicHeight() {
-        return (int) (HEIGHT * mScale);
-    }
-
-    @Override
-    public int getIntrinsicWidth() {
-        return (int) (WIDTH * mScale);
     }
 }

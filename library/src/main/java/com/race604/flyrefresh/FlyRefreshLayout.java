@@ -13,6 +13,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 
 import com.race604.flyrefresh.internal.MountainSceneDrawable;
+import com.race604.flyrefresh.internal.MountanScenceView;
 import com.race604.flyrefresh.internal.SimpleAnimatorListener;
 import com.race604.utils.UIUtils;
 
@@ -21,7 +22,6 @@ import com.race604.utils.UIUtils;
  */
 public class FlyRefreshLayout extends PullHeaderLayout {
 
-    private MountainSceneDrawable mSceneDrawable;
     private AnimatorSet mFlyAnimator = null;
     private OnPullRefreshListener mListener;
 
@@ -48,25 +48,15 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     private void init(Context context) {
         int maxHeight = UIUtils.dpToPx(300);
         setHeaderSize((int) (maxHeight * 0.8f), maxHeight, UIUtils.dpToPx(48));
+        MountanScenceView headerView = new MountanScenceView(getContext());
+        LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mHeaderController.getMaxHeight());
+        setHeaderView(headerView, lp);
     }
 
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-
-        mSceneDrawable = new MountainSceneDrawable();
-        ImageView headerView = new ImageView(getContext());
-        headerView.setScaleType(ImageView.ScaleType.FIT_XY);
-        LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        setHeaderView(headerView, lp);
-        headerView.setImageDrawable(mSceneDrawable);
-
         setActionDrawable(getResources().getDrawable(R.mipmap.ic_send));
-    }
-
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     @Override
@@ -170,8 +160,6 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     @Override
     protected void onMoveHeader(int state, float progress) {
         super.onMoveHeader(state, progress);
-        mSceneDrawable.setMoveFactor(state, progress);
-        mSceneDrawable.invalidateSelf();
         if (mHeaderController.isOverHeight()) {
             getIconView().setRotation((-45) * progress);
         }
