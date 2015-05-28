@@ -3,7 +3,7 @@ The Android implementation of [Replace](https://dribbble.com/shots/2067564-Repla
 I implement this as a **FlyRefresh** layout. The content of the layout can be any view, such as ListView, RecyclerView, ScrollView, etc.
 
 #How it looks
-[!Replace](./images/flyrefresh.gif)
+![flyrefresh](./images/flyrefresh.gif)
 
 #Features
 * Default minimize configuration for [Replace](https://dribbble.com/shots/2067564-Replace) animation
@@ -14,6 +14,7 @@ I implement this as a **FlyRefresh** layout. The content of the layout can be an
 #How to use
 The basie usage in layou xml liks blow:
 
+```xml
     <com.race604.flyrefresh.FlyRefreshLayout
       android:id="@+id/fly_layout"
       android:layout_width="match_parent"
@@ -26,9 +27,11 @@ The basie usage in layou xml liks blow:
           android:paddingTop="24dp"
           android:background="#FFFFFF"/>
     </com.race604.flyrefresh.FlyRefreshLayout>
+```
 
 Or you can use `PullHeaderLayout` for more cofigurations, you can set custome attributes below:
 
+```xml
     <declare-styleable name="PullHeaderLayout">
         <!-- hader size -->
         <attr name="phl_header_height" format="dimension" />
@@ -41,7 +44,7 @@ Or you can use `PullHeaderLayout` for more cofigurations, you can set custome at
         <!-- Float action button icon -->
         <attr name="phl_action" format="reference" />
     </declare-styleable>
-
+```
 For more, please turn to the source code.
 
 #Lincense
