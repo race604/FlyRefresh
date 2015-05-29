@@ -12,38 +12,47 @@ I implement this as a **FlyRefresh** layout. The content of the layout can be an
 * Support custom refresh animation
 
 #How to use
+
+Add Gradle dependency:
+
+```gradle
+dependencies {
+   compile 'com.race604.flyrefresh:1.0.0'
+}
+```
+
 The basie usage in layou xml liks blow:
 
 ```xml
-    <com.race604.flyrefresh.FlyRefreshLayout
-      android:id="@+id/fly_layout"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent">
+<com.race604.flyrefresh.FlyRefreshLayout
+  android:id="@+id/fly_layout"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
 
-        <android.support.v7.widget.RecyclerView
-          android:id="@+id/list"
-          android:layout_width="match_parent"
-          android:layout_height="match_parent"
-          android:paddingTop="24dp"
-          android:background="#FFFFFF"/>
-    </com.race604.flyrefresh.FlyRefreshLayout>
+    <android.support.v7.widget.RecyclerView
+      android:id="@+id/list"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:paddingTop="24dp"
+      android:background="#FFFFFF"/>
+</com.race604.flyrefresh.FlyRefreshLayout>
 ```
 
 Or you can use `PullHeaderLayout` for more cofigurations, you can set custome attributes below:
 
 ```xml
-    <declare-styleable name="PullHeaderLayout">
-        <!-- hader size -->
-        <attr name="phl_header_height" format="dimension" />
-        <attr name="phl_header_expand_height" format="dimension" />
-        <attr name="phl_header_shrink_height" format="dimension" />
-        <!-- header view id -->
-        <attr name="phl_header" format="reference" />
-        <!-- content view id -->
-        <attr name="phl_content" format="reference" />
-        <!-- Float action button icon -->
-        <attr name="phl_action" format="reference" />
-    </declare-styleable>
+<declare-styleable name="PullHeaderLayout">
+    <!-- hader size -->
+    <attr name="phl_header_height" format="dimension" />
+    <attr name="phl_header_expand_height" format="dimension" />
+    <attr name="phl_header_shrink_height" format="dimension" />
+    <!-- header view id -->
+    <attr name="phl_header" format="reference" />
+    <!-- content view id -->
+    <attr name="phl_content" format="reference" />
+    <!-- Float action button icon -->
+    <attr name="phl_action" format="reference" />
+</declare-styleable>
 ```
 For more, please turn to the source code.
 
