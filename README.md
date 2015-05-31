@@ -1,17 +1,17 @@
-#FlyRefresh
+# FlyRefresh
 The Android implementation of [Replace](https://dribbble.com/shots/2067564-Replace), designed by [Zee Youn](https://dribbble.com/zeeyoung).
-I implement this as a **FlyRefresh** layout. The content of the layout can be any view, such as ListView, RecyclerView, ScrollView, etc.
+I implement this as a **FlyRefresh** layout. The content of the layout can be any view, such as a ListView, RecyclerView, ScrollView, etc.
 
-#How it looks
+# How it looks
 ![flyrefresh](./images/flyrefresh.gif)
 
-#Features
+# Features
 * Default minimize configuration for [Replace](https://dribbble.com/shots/2067564-Replace) animation
 * Expendable/Shrinkable header
 * Support custom header view
 * Support custom refresh animation
 
-#How to use
+# How to use
 
 Add Gradle dependency:
 
@@ -21,7 +21,7 @@ dependencies {
 }
 ```
 
-The basie usage in layou xml liks blow:
+An example of basic usage in `layout.xml`:
 
 ```xml
 <com.race604.flyrefresh.FlyRefreshLayout
@@ -38,7 +38,7 @@ The basie usage in layou xml liks blow:
 </com.race604.flyrefresh.FlyRefreshLayout>
 ```
 
-Or you can use `PullHeaderLayout` for more cofigurations, you can set custome attributes below:
+Or you can use `PullHeaderLayout` for more configurations, you can set custom attributes as shown below:
 
 ```xml
 <declare-styleable name="PullHeaderLayout">
@@ -56,5 +56,5 @@ Or you can use `PullHeaderLayout` for more cofigurations, you can set custome at
 ```
 For more, please turn to the source code.
 
-#Lincense
+# License
 `FlyRefresh` is available under the MIT license.
