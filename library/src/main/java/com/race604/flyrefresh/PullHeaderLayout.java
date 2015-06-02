@@ -6,8 +6,12 @@ import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
+import android.support.design.widget.FloatingActionButton;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -17,7 +21,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Scroller;
 
-import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.race604.flyrefresh.internal.ElasticOutInterpolator;
 import com.race604.flyrefresh.internal.SimpleAnimatorListener;
 import com.race604.utils.UIUtils;
@@ -37,6 +40,7 @@ public class PullHeaderLayout extends ViewGroup {
 
     final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(40);
     final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
+    final static int FAB_SIZE = UIUtils.dpToPx(50);
     private final static int DEFAULT_EXPAND = UIUtils.dpToPx(300);
     private final static int DEFAULT_HEIGHT = UIUtils.dpToPx(240);
     private final static int DEFAULT_SHRINK = UIUtils.dpToPx(48);
@@ -143,10 +147,13 @@ public class PullHeaderLayout extends ViewGroup {
             if (mActionView == null) {
                 final int bgColor = UIUtils.getThemeColorFromAttrOrRes(getContext(), R.attr.colorAccent, R.color.accent);
                 final int pressedColor = UIUtils.darkerColor(bgColor, 0.8f);
+
+                final ShapeDrawable bgDrawable = new ShapeDrawable(new OvalShape());
+                bgDrawable.getPaint().setColor(bgColor);
                 mActionView = new FloatingActionButton(getContext());
-                mActionView.setColorNormal(bgColor);
-                mActionView.setColorPressed(pressedColor);
-                addView(mActionView);
+                mActionView.setRippleColor(pressedColor);
+                mActionView.setBackgroundDrawable(bgDrawable);
+                addView(mActionView, new LayoutParams(FAB_SIZE, FAB_SIZE));
             }
 
             if (mFlyView == null) {
@@ -286,9 +293,8 @@ public class PullHeaderLayout extends ViewGroup {
             int halfWidth = (mActionView.getMeasuredWidth() + 1) / 2;
             int halfHeight = (mActionView.getMeasuredHeight() + 1) / 2;
 
-            final int adjustCenter = UIUtils.dpToPx(2);
-            mActionView.layout(center - halfWidth , offsetY - halfHeight + adjustCenter,
-                    center + halfWidth, offsetY + halfHeight + adjustCenter);
+            mActionView.layout(center - halfWidth , offsetY - halfHeight,
+                    center + halfWidth, offsetY + halfHeight);
 
             halfWidth = (mFlyView.getMeasuredWidth() + 1) / 2;
             halfHeight = (mFlyView.getMeasuredHeight() + 1) / 2;

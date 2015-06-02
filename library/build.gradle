@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "1.0.0"
+version = "1.0.1"
 
 android {
     compileSdkVersion 22
@@ -10,9 +10,9 @@ android {
     resourcePrefix "flyrefresh__"
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 10
         targetSdkVersion 22
-        versionCode 1
+        versionCode 2
         versionName version
     }
     buildTypes {
@@ -25,8 +25,8 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.1.1'
-    compile 'com.getbase:floatingactionbutton:1.9.0'
+    compile 'com.android.support:appcompat-v7:22.2.0'
+    compile 'com.android.support:design:22.2.0'
 }
 
 def siteUrl = 'https://github.com/race604/FlyRefresh'
