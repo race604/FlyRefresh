@@ -11,6 +11,7 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -158,8 +159,12 @@ public class PullHeaderLayout extends ViewGroup {
                 mFlyView = new ImageView(getContext());
                 mFlyView.setScaleType(ImageView.ScaleType.FIT_XY);
                 addView(mFlyView, new LayoutParams(ACTION_ICON_SIZE, ACTION_ICON_SIZE));
+                mFlyView.bringToFront();
+                float elevation = ViewCompat.getElevation(mActionView);
+                ViewCompat.setElevation(mFlyView, elevation + 1);
             }
             mFlyView.setImageDrawable(mActionDrawable);
+
         } else {
             if (mActionView != null) {
                 removeView(mActionView);
