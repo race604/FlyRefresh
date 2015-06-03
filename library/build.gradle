@@ -10,7 +10,7 @@ android {
     resourcePrefix "flyrefresh__"
 
     defaultConfig {
-        minSdkVersion 10
+        minSdkVersion 11
         targetSdkVersion 22
         versionCode 2
         versionName version

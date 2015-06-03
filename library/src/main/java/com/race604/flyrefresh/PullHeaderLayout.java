@@ -6,7 +6,6 @@ import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
@@ -40,7 +39,6 @@ public class PullHeaderLayout extends ViewGroup {
 
     final static int ACTION_BUTTON_CENTER = UIUtils.dpToPx(40);
     final static int ACTION_ICON_SIZE = UIUtils.dpToPx(32);
-    final static int FAB_SIZE = UIUtils.dpToPx(50);
     private final static int DEFAULT_EXPAND = UIUtils.dpToPx(300);
     private final static int DEFAULT_HEIGHT = UIUtils.dpToPx(240);
     private final static int DEFAULT_SHRINK = UIUtils.dpToPx(48);
@@ -153,7 +151,7 @@ public class PullHeaderLayout extends ViewGroup {
                 mActionView = new FloatingActionButton(getContext());
                 mActionView.setRippleColor(pressedColor);
                 mActionView.setBackgroundDrawable(bgDrawable);
-                addView(mActionView, new LayoutParams(FAB_SIZE, FAB_SIZE));
+                addView(mActionView, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             }
 
             if (mFlyView == null) {

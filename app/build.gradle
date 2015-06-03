@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.race604.flyrefresh"
-        minSdkVersion 14
+        minSdkVersion 11
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
@@ -21,7 +21,7 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:22.1.1'
+    compile 'com.android.support:appcompat-v7:22.2.0'
     compile project(':library')
     compile 'com.android.support:recyclerview-v7:22.1.1'
     compile 'jp.wasabeef:recyclerview-animators:1.2.0@aar'
