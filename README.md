@@ -17,7 +17,7 @@ Add Gradle dependency:
 
 ```gradle
 dependencies {
-   compile 'com.race604.flyrefresh:library:1.0.3'
+   compile 'com.race604.flyrefresh:library:1.0.2'
 }
 ```
 
