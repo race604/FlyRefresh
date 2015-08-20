@@ -8,6 +8,7 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
@@ -299,8 +300,14 @@ public class PullHeaderLayout extends ViewGroup implements NestedScrollingParent
         }
     }
 
+    @Nullable
     public View getIconView() {
         return mFlyView;
+    }
+
+    @Nullable
+    public FloatingActionButton getHeaderActionButton() {
+        return mActionView;
     }
 
     public void setHeaderView(View headerView, LayoutParams lp) {
@@ -774,14 +781,14 @@ public class PullHeaderLayout extends ViewGroup implements NestedScrollingParent
             mPullState = STATE_BOUNCE;
 
             if (mHeaderController.needSendRefresh()) {
-                onStartRefreshAnimation();
+                startRefresh();
             }
         } else {
             mPullState = STATE_IDLE;
         }
     }
 
-    protected void onStartRefreshAnimation() {}
+    public void startRefresh() {}
 
     @Override
     protected boolean checkLayoutParams(ViewGroup.LayoutParams p) {

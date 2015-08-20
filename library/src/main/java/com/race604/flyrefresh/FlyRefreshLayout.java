@@ -55,7 +55,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     }
 
     @Override
-    protected void onStartRefreshAnimation() {
+    public void startRefresh() {
 
         if (mFlyAnimator != null) {
             mFlyAnimator.end();
