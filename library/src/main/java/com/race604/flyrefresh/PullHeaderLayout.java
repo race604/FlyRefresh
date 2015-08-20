@@ -3,23 +3,29 @@ package com.race604.flyrefresh;
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
-import android.os.Build;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.NestedScrollingChild;
+import android.support.v4.view.NestedScrollingChildHelper;
+import android.support.v4.view.NestedScrollingParent;
+import android.support.v4.view.NestedScrollingParentHelper;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.view.ViewCompat;
+import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.ImageView;
-import android.widget.Scroller;
 
 import com.race604.flyrefresh.internal.ElasticOutInterpolator;
 import com.race604.flyrefresh.internal.SimpleAnimatorListener;
@@ -28,7 +34,7 @@ import com.race604.utils.UIUtils;
 /**
  * Created by Jing on 15/5/18.
  */
-public class PullHeaderLayout extends ViewGroup {
+public class PullHeaderLayout extends ViewGroup implements NestedScrollingParent, NestedScrollingChild {
 
     private static final String TAG = PullHeaderLayout.class.getCanonicalName();
     private static final boolean D = true;
@@ -47,14 +53,6 @@ public class PullHeaderLayout extends ViewGroup {
     private int mHeaderId = 0;
     private int mContentId = 0;
 
-    private int mPagingTouchSlop;
-
-    private MotionEvent mDownEvent;
-    private MotionEvent mLastMoveEvent;
-    private boolean mHasSendCancelEvent = false;
-    private boolean mPreventForHorizontal = false;
-    private boolean mDisableWhenHorizontalMove = false;
-
     private Drawable mActionDrawable;
     private FloatingActionButton mActionView;
     private ImageView mFlyView;
@@ -62,38 +60,42 @@ public class PullHeaderLayout extends ViewGroup {
     private IPullHeader mPullHeaderView;
     protected View mContent;
     protected HeaderController mHeaderController;
-    private IScrollHandler mScrollHandler;
 
-    private ScrollChecker mScrollChecker;
     private VelocityTracker mVelocityTracker;
     private ValueAnimator mBounceAnim;
-    private int mMaxVelocity;
     private int mPullState = STATE_IDLE;
+
+    private static final int INVALID_POINTER = -1;
+    private int mActivePointerId = INVALID_POINTER;
+    private boolean mIsBeingDragged = false;
+    private int mLastMotionY = 0;
+
+    private int mTouchSlop;
+    private int mMinimumVelocity;
+    private int mMaximumVelocity;
+    private int mNestedYOffset;
+
+    private final int[] mScrollOffset = new int[2];
+    private final int[] mScrollConsumed = new int[2];
+
+    private final NestedScrollingParentHelper mParentHelper;
+    private final NestedScrollingChildHelper mChildHelper;
+
+    private ScrollerCompat mScroller;
 
     private OnPullListener mPullListener;
 
     public PullHeaderLayout(Context context) {
-        super(context);
-        init(context, null);
+        this(context, null);
     }
 
     public PullHeaderLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init(context, attrs);
+        this(context, attrs, 0);
     }
 
     public PullHeaderLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context, attrs);
-    }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public PullHeaderLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        init(context, attrs);
-    }
-
-    private void init(Context context, AttributeSet attrs) {
         int headerHeight = DEFAULT_HEIGHT;
         int headerExpandHeight = DEFAULT_EXPAND;
         int headerShrinkHeight = DEFAULT_SHRINK;
@@ -118,11 +120,137 @@ public class PullHeaderLayout extends ViewGroup {
         mHeaderController = new HeaderController(headerHeight, headerExpandHeight, headerShrinkHeight);
 
         final ViewConfiguration conf = ViewConfiguration.get(getContext());
-        mPagingTouchSlop = conf.getScaledTouchSlop() * 2;
-        mScrollHandler = new DefalutScrollHandler();
 
-        mScrollChecker = new ScrollChecker();
-        mMaxVelocity = conf.getScaledMaximumFlingVelocity();
+        mParentHelper = new NestedScrollingParentHelper(this);
+        mChildHelper = new NestedScrollingChildHelper(this);
+
+        setNestedScrollingEnabled(true);
+
+        init();
+    }
+
+    private void init() {
+        mScroller = ScrollerCompat.create(getContext());
+        final ViewConfiguration configuration = ViewConfiguration.get(getContext());
+        mTouchSlop = configuration.getScaledTouchSlop();
+        mMinimumVelocity = configuration.getScaledMinimumFlingVelocity();
+        mMaximumVelocity = configuration.getScaledMaximumFlingVelocity();
+    }
+
+    // NestedScrollingChild
+
+    @Override
+    public void setNestedScrollingEnabled(boolean enabled) {
+        mChildHelper.setNestedScrollingEnabled(enabled);
+    }
+
+    @Override
+    public boolean isNestedScrollingEnabled() {
+        return mChildHelper.isNestedScrollingEnabled();
+    }
+
+    @Override
+    public boolean startNestedScroll(int axes) {
+        return mChildHelper.startNestedScroll(axes);
+    }
+
+    @Override
+    public void stopNestedScroll() {
+        mChildHelper.stopNestedScroll();
+    }
+
+    @Override
+    public boolean hasNestedScrollingParent() {
+        return mChildHelper.hasNestedScrollingParent();
+    }
+
+    @Override
+    public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed,
+                                        int dyUnconsumed, int[] offsetInWindow) {
+        return mChildHelper.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed,
+                offsetInWindow);
+    }
+
+    @Override
+    public boolean dispatchNestedPreScroll(int dx, int dy, int[] consumed, int[] offsetInWindow) {
+        return mChildHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow);
+    }
+
+    @Override
+    public boolean dispatchNestedFling(float velocityX, float velocityY, boolean consumed) {
+        return mChildHelper.dispatchNestedFling(velocityX, velocityY, consumed);
+    }
+
+    @Override
+    public boolean dispatchNestedPreFling(float velocityX, float velocityY) {
+        return mChildHelper.dispatchNestedPreFling(velocityX, velocityY);
+    }
+
+    // NestedScrollingParent
+
+    @Override
+    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        return (nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0;
+    }
+
+    @Override
+    public void onNestedScrollAccepted(View child, View target, int nestedScrollAxes) {
+        mParentHelper.onNestedScrollAccepted(child, target, nestedScrollAxes);
+        startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
+    }
+
+    @Override
+    public void onStopNestedScroll(View target) {
+        stopNestedScroll();
+    }
+
+    @Override
+    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed,
+                               int dyUnconsumed) {
+        final int myConsumed = moveBy(dyUnconsumed);
+        final int myUnconsumed = dyUnconsumed - myConsumed;
+        dispatchNestedScroll(0, myConsumed, 0, myUnconsumed, null);
+    }
+
+    @Override
+    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        if (dy > 0 && mHeaderController.canScrollUp()) {
+            final int delta = moveBy(dy);
+            consumed[0] = 0;
+            consumed[1] = delta;
+            //dispatchNestedScroll(0, myConsumed, 0, consumed[1], null);
+        }
+    }
+
+    @Override
+    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
+        if (!consumed) {
+            flingWithNestedDispatch((int) velocityY);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean flingWithNestedDispatch(int velocityY) {
+        final boolean canFling = (mHeaderController.canScrollUp() && velocityY > 0) ||
+                (mHeaderController.canScrollDown() && velocityY < 0);
+        if (!dispatchNestedPreFling(0, velocityY)) {
+            dispatchNestedFling(0, velocityY, canFling);
+            if (canFling) {
+                fling(velocityY);
+            }
+        }
+        return canFling;
+    }
+
+    @Override
+    public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
+        return flingWithNestedDispatch((int) velocityY);
+    }
+
+    @Override
+    public int getNestedScrollAxes() {
+        return mParentHelper.getNestedScrollAxes();
     }
 
     public void setHeaderSize(int height, int maxHeight, int minHeight) {
@@ -130,10 +258,6 @@ public class PullHeaderLayout extends ViewGroup {
         if (isLayoutRequested()) {
             requestLayout();
         }
-    }
-
-    public void setScrollHandler(IScrollHandler handler) {
-        mScrollHandler = handler;
     }
 
     public void setOnPullListener(OnPullListener listener) {
@@ -269,7 +393,7 @@ public class PullHeaderLayout extends ViewGroup {
     }
 
     private void layoutChildren() {
-        int offsetY = mHeaderController.getCurrentPos();
+        int offsetY = mHeaderController.getCurPosition();
         int paddingLeft = getPaddingLeft();
         int paddingTop = getPaddingTop();
 
@@ -307,26 +431,19 @@ public class PullHeaderLayout extends ViewGroup {
 
     }
 
-    private void sendCancelEvent() {
-        MotionEvent last = mLastMoveEvent;
-        MotionEvent e = MotionEvent.obtain(last.getDownTime(),
-                last.getEventTime() + ViewConfiguration.getLongPressTimeout(),
-                MotionEvent.ACTION_CANCEL, last.getX(), last.getY(), last.getMetaState());
-        super.dispatchTouchEvent(e);
-    }
-
-    private void sendDownEvent() {
-        final MotionEvent last = mLastMoveEvent;
-        MotionEvent e = MotionEvent.obtain(last.getDownTime(), last.getEventTime(),
-                MotionEvent.ACTION_DOWN, last.getX(), last.getY(), last.getMetaState());
-        super.dispatchTouchEvent(e);
-    }
-
     private void obtainVelocityTracker(MotionEvent event) {
         if (mVelocityTracker == null) {
             mVelocityTracker = VelocityTracker.obtain();
         }
         mVelocityTracker.addMovement(event);
+    }
+
+    private void initOrResetVelocityTracker() {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        } else {
+            mVelocityTracker.clear();
+        }
     }
 
     private void releaseVelocityTracker() {
@@ -336,133 +453,272 @@ public class PullHeaderLayout extends ViewGroup {
         }
     }
 
-    private float getInitVelocity() {
-        if (mVelocityTracker != null) {
-            mVelocityTracker.computeCurrentVelocity(1000, mMaxVelocity);
-            return mVelocityTracker.getYVelocity();
+    private void onSecondaryPointerUp(MotionEvent ev) {
+        final int pointerIndex = (ev.getAction() & MotionEventCompat.ACTION_POINTER_INDEX_MASK) >>
+                MotionEventCompat.ACTION_POINTER_INDEX_SHIFT;
+        final int pointerId = MotionEventCompat.getPointerId(ev, pointerIndex);
+        if (pointerId == mActivePointerId) {
+            // This was our active pointer going up. Choose a new
+            // active pointer and adjust accordingly.
+            // TODO: Make this decision more intelligent.
+            final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+            mLastMotionY = (int) MotionEventCompat.getY(ev, newPointerIndex);
+            mActivePointerId = MotionEventCompat.getPointerId(ev, newPointerIndex);
+            if (mVelocityTracker != null) {
+                mVelocityTracker.clear();
+            }
         }
-        return 0;
+    }
+
+    private void endDrag() {
+        mIsBeingDragged = false;
+        releaseVelocityTracker();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        final int action = ev.getAction();
+        if ((action == MotionEvent.ACTION_MOVE) && (mIsBeingDragged)) {
+            return true;
+        }
+
+        if(!isEnabled()) {
+            return false;
+        }
+
+        switch (action & MotionEventCompat.ACTION_MASK) {
+            case MotionEvent.ACTION_MOVE: {
+                final int activePointerId = mActivePointerId;
+                if (activePointerId == INVALID_POINTER) {
+                    // If we don't have a valid id, the touch down wasn't on content.
+                    break;
+                }
+
+                final int pointerIndex = MotionEventCompat.findPointerIndex(ev, activePointerId);
+                if (pointerIndex == -1) {
+                    Log.e(TAG, "Invalid pointerId=" + activePointerId
+                            + " in onInterceptTouchEvent");
+                    break;
+                }
+
+                final int y = (int) MotionEventCompat.getY(ev, pointerIndex);
+                final int yDiff = Math.abs(y - mLastMotionY);
+                if (yDiff > mTouchSlop
+                        && (getNestedScrollAxes() & ViewCompat.SCROLL_AXIS_VERTICAL) == 0) {
+                    mIsBeingDragged = true;
+                    mLastMotionY = y;
+                    obtainVelocityTracker(ev);
+                    mNestedYOffset = 0;
+                    final ViewParent parent = getParent();
+                    if (parent != null) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    }
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_DOWN: {
+                final int y = (int) ev.getY();
+
+                /*
+                 * Remember location of down touch.
+                 * ACTION_DOWN always refers to pointer index 0.
+                 */
+                mLastMotionY = y;
+                mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
+
+                initOrResetVelocityTracker();
+                mVelocityTracker.addMovement(ev);
+                /*
+                * If being flinged and user touches the screen, initiate drag;
+                * otherwise don't.  mScroller.isFinished should be false when
+                * being flinged.
+                */
+                mIsBeingDragged = !mScroller.isFinished();
+                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
+                break;
+            }
+
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP:
+                /* Release the drag */
+                mIsBeingDragged = false;
+                mActivePointerId = INVALID_POINTER;
+                endDrag();
+                stopNestedScroll();
+                break;
+            case MotionEventCompat.ACTION_POINTER_UP:
+                onSecondaryPointerUp(ev);
+                break;
+        }
+
+        return mIsBeingDragged;
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (!isEnabled() || mContent == null || mHeaderView == null) {
-            return super.dispatchTouchEvent(ev);
-        }
-
-        obtainVelocityTracker(ev);
-        int action = ev.getAction();
-        switch (action) {
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                final float initVelocity = getInitVelocity();
-                releaseVelocityTracker();
-
-                if (mHeaderController.isInTouch()) {
-                    mHeaderController.onTouchRelease();
-                    onRelease((int) initVelocity);
-                    if (mHeaderController.hasMoved()) {
-                        sendCancelEvent();
-                        return true;
-                    }
-                    return super.dispatchTouchEvent(ev);
-                } else {
-                    return super.dispatchTouchEvent(ev);
-                }
-            case MotionEvent.ACTION_DOWN:
-                mHasSendCancelEvent = false;
-                mDownEvent = ev;
-                mHeaderController.onTouchDown(ev.getX(), ev.getY());
-
-                if (mBounceAnim != null && mBounceAnim.isRunning()) {
-                    mBounceAnim.cancel();
-                }
-                mScrollChecker.abortIfWorking();
-
-                mPreventForHorizontal = false;
-                super.dispatchTouchEvent(ev);
-
-            case MotionEvent.ACTION_MOVE:
-                mLastMoveEvent = ev;
-                mHeaderController.onTouchMove(ev.getX(), ev.getY());
-
-                float offsetX = mHeaderController.getOffsetX();
-                float offsetY = mHeaderController.getOffsetY();
-
-                if (mDisableWhenHorizontalMove && !mPreventForHorizontal
-                        && (Math.abs(offsetX) > mPagingTouchSlop
-                        && Math.abs(offsetX) > Math.abs(offsetY))) {
-                    mPreventForHorizontal = true;
-                }
-                if (mPreventForHorizontal) {
-                    return super.dispatchTouchEvent(ev);
-                }
-
-                boolean moveDown = offsetY > 0;
-
-                if (moveDown) {
-                    if (mContent != null && mScrollHandler.canScrollUp(mContent)) {
-                        if (mHeaderController.isInTouch()) {
-                            mHeaderController.onTouchRelease();
-                            sendDownEvent();
-                        }
-                        return super.dispatchTouchEvent(ev);
-                    } else {
-                        if (!mHeaderController.isInTouch()) {
-                            mHeaderController.onTouchDown(ev.getX(), ev.getY());
-                            offsetY = mHeaderController.getOffsetY();
-                        }
-                        willMovePos(offsetY);
-                        return true;
-                    }
-                } else {
-                    if (mHeaderController.canMoveUp()) {
-                        willMovePos(offsetY);
-                        return true;
-                    } else {
-                        if (mHeaderController.isInTouch()) {
-                            mHeaderController.onTouchRelease();
-                            sendDownEvent();
-                        }
-                        return super.dispatchTouchEvent(ev);
-                    }
-                }
-
+        final int actionMasked = MotionEventCompat.getActionMasked(ev);
+        if (actionMasked == MotionEvent.ACTION_UP || actionMasked == MotionEvent.ACTION_CANCEL) {
+            tryBounceBack();
         }
         return super.dispatchTouchEvent(ev);
     }
 
-    private void willMovePos(float deltaY) {
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
 
-        int delta = mHeaderController.willMove(deltaY);
-        //Log.d(TAG, String.format("willMovePos deltaY = %s, delta = %d", deltaY, delta));
+        MotionEvent vtev = MotionEvent.obtain(ev);
 
-        if (delta == 0) {
-            return;
+        final int actionMasked = MotionEventCompat.getActionMasked(ev);
+
+        if (actionMasked == MotionEvent.ACTION_DOWN) {
+            mNestedYOffset = 0;
+        }
+        vtev.offsetLocation(0, mNestedYOffset);
+
+        switch (actionMasked) {
+            case MotionEvent.ACTION_DOWN: {
+                if ((mIsBeingDragged = !mScroller.isFinished())) {
+                    final ViewParent parent = getParent();
+                    if (parent != null) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    }
+                }
+
+                /*
+                 * If being flinged and user touches, stop the fling. isFinished
+                 * will be false if being flinged.
+                 */
+                if (!mScroller.isFinished()) {
+                    mScroller.abortAnimation();
+                }
+
+                // Remember where the motion event started
+                mLastMotionY = (int) ev.getY();
+                mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
+                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
+                break;
+            }
+            case MotionEvent.ACTION_MOVE:
+                final int activePointerIndex = MotionEventCompat.findPointerIndex(ev,
+                        mActivePointerId);
+                if (activePointerIndex == -1) {
+                    Log.e(TAG, "Invalid pointerId=" + mActivePointerId + " in onTouchEvent");
+                    break;
+                }
+
+                final int y = (int) MotionEventCompat.getY(ev, activePointerIndex);
+                int deltaY = mLastMotionY - y;
+                if (dispatchNestedPreScroll(0, deltaY, mScrollConsumed, mScrollOffset)) {
+                    deltaY -= mScrollConsumed[1];
+                    vtev.offsetLocation(0, mScrollOffset[1]);
+                    mNestedYOffset += mScrollOffset[1];
+                }
+                if (!mIsBeingDragged && Math.abs(deltaY) > mTouchSlop) {
+                    final ViewParent parent = getParent();
+                    if (parent != null) {
+                        parent.requestDisallowInterceptTouchEvent(true);
+                    }
+                    mIsBeingDragged = true;
+                    if (deltaY > 0) {
+                        deltaY -= mTouchSlop;
+                    } else {
+                        deltaY += mTouchSlop;
+                    }
+                }
+                if (mIsBeingDragged) {
+                    // Scroll to follow the motion event
+                    mLastMotionY = y - mScrollOffset[1];
+
+                    final int scrolledDeltaY = moveBy(deltaY);
+                    final int unconsumedY = deltaY - scrolledDeltaY;
+                    if (dispatchNestedScroll(0, scrolledDeltaY, 0, unconsumedY, mScrollOffset)) {
+                        mLastMotionY -= mScrollOffset[1];
+                        vtev.offsetLocation(0, mScrollOffset[1]);
+                        mNestedYOffset += mScrollOffset[1];
+                    }
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (mIsBeingDragged) {
+                    final VelocityTracker velocityTracker = mVelocityTracker;
+                    velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
+                    int initialVelocity = (int) VelocityTrackerCompat.getYVelocity(velocityTracker,
+                            mActivePointerId);
+
+                    if ((Math.abs(initialVelocity) > mMinimumVelocity)) {
+                        flingWithNestedDispatch(-initialVelocity);
+                    }
+
+                    mActivePointerId = INVALID_POINTER;
+                    endDrag();
+                }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                if (mIsBeingDragged && getChildCount() > 0) {
+                    mActivePointerId = INVALID_POINTER;
+                    endDrag();
+                }
+                break;
+            case MotionEventCompat.ACTION_POINTER_DOWN: {
+                final int index = MotionEventCompat.getActionIndex(ev);
+                mLastMotionY = (int) MotionEventCompat.getY(ev, index);
+                mActivePointerId = MotionEventCompat.getPointerId(ev, index);
+                break;
+            }
+            case MotionEventCompat.ACTION_POINTER_UP:
+                onSecondaryPointerUp(ev);
+                mLastMotionY = (int) MotionEventCompat.getY(ev,
+                        MotionEventCompat.findPointerIndex(ev, mActivePointerId));
+                break;
         }
 
-        if (!mHasSendCancelEvent && mHeaderController.isInTouch()) {
-            sendCancelEvent();
+        if (mVelocityTracker != null) {
+            mVelocityTracker.addMovement(vtev);
+        }
+        vtev.recycle();
+        return true;
+    }
+
+    protected void onMoveHeader(int state, float progress) {}
+
+    /**
+     * Fling the scroll view
+     *
+     * @param velocityY The initial velocity in the Y direction. Positive
+     *                  numbers mean that the finger/cursor is moving down the screen,
+     *                  which means we want to scroll towards the top.
+     */
+    public void fling(int velocityY) {
+        mPullState = STATE_FLING;
+        mScroller.abortAnimation();
+        mScroller.fling(0, mHeaderController.getScroll(), 0, velocityY, 0, 0,
+                mHeaderController.getMinScroll(), mHeaderController.getMaxScroll(),
+                0, 0);
+        ViewCompat.postInvalidateOnAnimation(this);
+    }
+
+    private int moveBy(float deltaY) {
+        int oldScroll = mHeaderController.getScroll();
+        int consumed = mHeaderController.move(deltaY);
+
+        final int delta = mHeaderController.getScroll() - oldScroll;
+        if (delta == 0) {
+            return 0;
         }
 
         if (mPullState != STATE_DRAGE) {
             mPullState = STATE_DRAGE;
         }
 
-        movePos(delta);
-    }
-
-    protected void onMoveHeader(int state, float progress) {}
-
-    private void movePos(float delta) {
         if (mContent != null) {
-            mContent.offsetTopAndBottom((int) delta);
+            mContent.offsetTopAndBottom(-delta);
         }
 
         if (mActionView != null) {
-            mActionView.offsetTopAndBottom((int) delta);
+            mActionView.offsetTopAndBottom(-delta);
 
-            mFlyView.offsetTopAndBottom((int) delta);
+            mFlyView.offsetTopAndBottom(-delta);
 
             float percentage = mHeaderController.getMovePercentage();
             onMoveHeader(mPullState, percentage);
@@ -477,22 +733,34 @@ public class PullHeaderLayout extends ViewGroup {
 
         }
 
+        return consumed;
     }
 
-    private void onRelease(int velocity) {
-        mScrollChecker.tryToScrollTo(velocity);
+    @Override
+    public void computeScroll() {
+        if (mScroller.computeScrollOffset()) {
+            int oldY = mHeaderController.getScroll();
+            int y = mScroller.getCurrY();
+
+            if (oldY != y) {
+                moveBy(y - oldY);
+            }
+            ViewCompat.postInvalidateOnAnimation(this);
+        } else {
+            tryBounceBack();
+        }
     }
 
-    private void onScrollFinish() {
+    private void tryBounceBack() {
         if (mHeaderController.isOverHeight()) {
-            mBounceAnim = ObjectAnimator.ofFloat(mHeaderController.getCurrentPos(), mHeaderController.getHeight());
+            mBounceAnim = ObjectAnimator.ofFloat(mHeaderController.getScroll(), 0);
             mBounceAnim.setInterpolator(new ElasticOutInterpolator());
             mBounceAnim.setDuration(500);
             mBounceAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
-                    float value = (float) animation.getAnimatedValue();
-                    movePos(mHeaderController.moveTo(value));
+                    float deltaY = (float) animation.getAnimatedValue() - mHeaderController.getScroll();
+                    moveBy(deltaY);
                 }
             });
             mBounceAnim.addListener(new SimpleAnimatorListener() {
@@ -552,75 +820,6 @@ public class PullHeaderLayout extends ViewGroup {
 
         public LayoutParams(ViewGroup.LayoutParams source) {
             super(source);
-        }
-    }
-
-    class ScrollChecker implements Runnable {
-
-        private Scroller mScroller;
-        private boolean mIsRunning = false;
-        private int mStart;
-
-        public ScrollChecker() {
-            mScroller = new Scroller(getContext());
-        }
-
-        @Override
-        public void run() {
-            boolean finish = !mScroller.computeScrollOffset();
-            int curY = mScroller.getCurrY();
-            int deltaY = mHeaderController.moveTo(curY);
-            //Log.d(TAG, String.format("Scroller: currY = %d, deltaY = %d", curY, deltaY));
-
-            if (!finish) {
-                movePos(deltaY);
-                postDelayed(this, 10);
-            } else {
-                finish();
-            }
-        }
-
-        private void finish() {
-            reset();
-            onScrollFinish();
-        }
-
-        private void reset() {
-            mIsRunning = false;
-            removeCallbacks(this);
-        }
-
-        public void abortIfWorking() {
-            if (mIsRunning) {
-                if (!mScroller.isFinished()) {
-                    mScroller.forceFinished(true);
-                }
-                //onPtrScrollAbort();
-                reset();
-            }
-        }
-
-        public void tryToScrollTo(int velocity) {
-
-            mPullState = STATE_FLING;
-
-            mStart = mHeaderController.getCurrentPos();
-            removeCallbacks(this);
-
-            // fix #47: Scroller should be reused, https://github.com/liaohuqiu/android-Ultra-Pull-To-Refresh/issues/47
-            if (!mScroller.isFinished()) {
-                mScroller.forceFinished(true);
-            }
-            mHeaderController.startMove();
-
-            mScroller.setFriction(ViewConfiguration.getScrollFriction() * 4);
-            mScroller.fling(0, mStart, 0, velocity, 0, 0, mHeaderController.getMinHeight(),
-                    mHeaderController.getMaxHeight());
-
-            //Log.d(TAG, String.format("Scroller: velocity = %d, duration = %d", velocity, mScroller.getDuration()));
-
-            post(this);
-            mIsRunning = true;
         }
     }
 

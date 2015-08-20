@@ -161,7 +161,7 @@ public class TreeDrawable extends Drawable {
         if (a < 1e-10) {
             t = (x1 - x) / (2 * (x1 - x0));
         } else {
-            t = (FloatMath.sqrt(b * b - 4 * a * c) + b) / (2 * a);
+            t = (float) ((Math.sqrt(b * b - 4 * a * c) + b) / (2 * a));
         }
 
         float t1 = 1 - t;

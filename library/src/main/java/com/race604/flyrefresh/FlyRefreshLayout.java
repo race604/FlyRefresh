@@ -38,11 +38,6 @@ public class FlyRefreshLayout extends PullHeaderLayout {
         init(context);
     }
 
-    public FlyRefreshLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        init(context);
-    }
-
     private void init(Context context) {
         MountanScenceView headerView = new MountanScenceView(getContext());
         LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mHeaderController.getMaxHeight());

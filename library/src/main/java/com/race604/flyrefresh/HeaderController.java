@@ -11,13 +11,10 @@ public class HeaderController {
     private float mOverDistance;
 
     private float mResistance = 0.5f;
-    private float mStartX;
-    private float mStartY;
-    private int mOffsetX;
-    private int mOffsetY;
     private boolean mIsInTouch = false;
-    private int mStartPos = -1;
-    private int mCurrentPos = -1;
+    private float mScroll = 0;
+    private int mMaxScroll = 0;
+    private int mMinScroll = 0;
 
     public HeaderController(int height, int maxHeight, int minHeight) {
 
@@ -34,7 +31,9 @@ public class HeaderController {
         mMinHegiht = Math.max(0, minHeight);
         mOverDistance = mMaxHegiht - mHeight;
 
-        mCurrentPos = mStartPos = mHeight;
+        mScroll = 0;
+        mMaxScroll = mHeight - mMinHegiht;
+        mMinScroll = mHeight - mMaxHegiht;
     }
 
     public int getMaxHeight() {
@@ -49,91 +48,81 @@ public class HeaderController {
         return mHeight;
     }
 
-    public int getCurrentPos() {
-        return mCurrentPos;
+    public int getScroll() {
+        return (int) mScroll;
     }
 
-    public int getOffsetX() {
-        return mOffsetX;
+    public int getMaxScroll() {
+        return mMaxScroll;
     }
 
-    public int getOffsetY() {
-        return mOffsetY;
+    public int getMinScroll() {
+        return mMinScroll;
+    }
+
+    public int getCurPosition() {
+        return (int) (mHeight - mScroll);
     }
 
     public boolean isInTouch() {
         return mIsInTouch;
     }
 
-    public boolean hasMoved() {
-        return mStartPos != mCurrentPos;
-    }
-    public boolean canMoveUp() {
-        return mCurrentPos > mMinHegiht;
-    }
-
-    public boolean canMoveDown() {
-        return mCurrentPos < mMaxHegiht;
+    /**
+     * Check if can scroll down to show top
+     * @return
+     */
+    public boolean canScrollDown() {
+        return mScroll > mMinScroll;
     }
 
-    public void onTouchRelease() {
-        mIsInTouch = false;
+    /**
+     * Check if can scroll up to show bottom
+     * @return
+     */
+    public boolean canScrollUp() {
+        return mScroll < mMaxScroll;
     }
 
-    public void onTouchDown(float x, float y) {
-        mIsInTouch = true;
-        mStartX = x;
-        mStartY = y;
-        mOffsetX = mOffsetY = 0;
-        startMove();
-    }
-
-    public void onTouchMove(float x, float y) {
-        mOffsetX = (int) (x - mStartX);
-        mOffsetY = (int) (y - mStartY);
-    }
-
-    public void startMove() {
-        mStartPos = mCurrentPos;
-    }
-
-    public int willMove(float deltaY) {
+    public int move(float deltaY) {
         float willTo;
-        if (mStartPos > mHeight) {
-            willTo = mStartPos + deltaY * mResistance;
-            if (willTo < mHeight) {
-                willTo = mHeight + (willTo - mHeight) / mResistance;
+        float consumed = deltaY;
+        if (mScroll >= 0) {
+            willTo = mScroll + deltaY;
+            if (willTo < 0) {
+                willTo = willTo * mResistance;
+                if (willTo < mMinScroll) {
+                    consumed -= (willTo - mMinScroll) / mResistance;
+                    willTo = mMinScroll;
+                }
+            } else if (willTo > mMaxHegiht) {
+                consumed -= willTo - mMaxScroll;
+                willTo = mMaxScroll;
             }
         } else {
-            willTo = mStartPos + deltaY;
-            if (willTo > mHeight) {
-                willTo = mHeight + (willTo - mHeight) * mResistance;
+            willTo = mScroll + deltaY * mResistance;
+            if (willTo > 0) {
+                willTo = willTo / mResistance;
+                if (willTo > mMaxScroll) {
+                    consumed -= willTo - mMaxScroll;
+                    willTo = mMaxScroll;
+                }
+            } else if (willTo < mMinScroll) {
+                consumed -= willTo - mMinScroll;
+                willTo = mMinScroll;
             }
         }
 
-        int offsetY = Math.max(mMinHegiht, Math.min(mMaxHegiht, (int)willTo));
-        int move = offsetY - mCurrentPos;
-        mCurrentPos = offsetY;
-        return move;
-    }
-
-    public int moveTo(float pos) {
-        int offsetY = Math.max(mMinHegiht, Math.min(mMaxHegiht, (int)pos));
-        int delta = offsetY - mCurrentPos;
-        mCurrentPos = offsetY;
-        return delta;
+        mScroll = willTo;
+        return (int) consumed;
     }
 
     public boolean isOverHeight() {
-        return mCurrentPos > mHeight;
+        return mScroll < 0;
     }
 
     public float getMovePercentage() {
-        if (mCurrentPos >= mHeight) {
-            return (mCurrentPos - mHeight) / mOverDistance;
-        } else {
-            return (mCurrentPos - mHeight) / mOverDistance;
-        }
+        return -mScroll / mOverDistance;
     }
 
     public boolean needSendRefresh() {
