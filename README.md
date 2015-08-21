@@ -1,11 +1,13 @@
 # FlyRefresh
 The Android implementation of [Replace](https://dribbble.com/shots/2067564-Replace), designed by [Zee Youn](https://dribbble.com/zeeyoung).
-I implement this as a **FlyRefresh** layout. The content of the layout can be any view, such as a ListView, RecyclerView, ScrollView, etc.
+I implement this as a **FlyRefresh** layout. The content of the layout can be any `NestedScrollingChild`, such as a RecyclerView, NestedScrollView, VerticalGridView, etc.
+This library can also work with `NestedScrollingParent` as parent, such as CoordinatorLayout.
 
 # How it looks
 ![flyrefresh](./images/flyrefresh.gif)
 
 # Features
+* Work with all [NestedScrollingParent](https://developer.android.com/reference/android/support/v4/view/NestedScrollingParent.html) and [NestedScrollingChild](https://developer.android.com/reference/android/support/v4/view/NestedScrollingChild.html)
 * Default minimize configuration for [Replace](https://dribbble.com/shots/2067564-Replace) animation
 * Expendable/Shrinkable header
 * Support custom header view
@@ -17,7 +19,7 @@ Add Gradle dependency:
 
 ```gradle
 dependencies {
-   compile 'com.race604.flyrefresh:library:1.0.2'
+   compile 'com.race604.flyrefresh:library:2.0.0'
 }
 ```
 
