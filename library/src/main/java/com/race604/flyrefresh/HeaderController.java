@@ -95,7 +95,7 @@ public class HeaderController {
                     consumed -= (willTo - mMinScroll) / mResistance;
                     willTo = mMinScroll;
                 }
-            } else if (willTo > mMaxHegiht) {
+            } else if (willTo > mMaxScroll) {
                 consumed -= willTo - mMaxScroll;
                 willTo = mMaxScroll;
             }
